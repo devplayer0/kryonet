@@ -23,6 +23,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import com.esotericsoftware.kryonet.adapters.Listener;
 import com.esotericsoftware.kryonet.util.InputStreamSender;
 
 public class InputStreamSenderTest extends KryoNetTestCase {

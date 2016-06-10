@@ -49,7 +49,7 @@ import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.EndPoint;
 import com.esotericsoftware.kryonet.FrameworkMessage;
 import com.esotericsoftware.kryonet.KryoNetException;
-import com.esotericsoftware.kryonet.Listener;
+import com.esotericsoftware.kryonet.adapters.Listener;
 import com.esotericsoftware.kryonet.util.ObjectIntMap;
 import com.esotericsoftware.reflectasm.MethodAccess;
 

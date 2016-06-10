@@ -20,7 +20,7 @@
 package com.esotericsoftware.kryonet.util;
 
 import com.esotericsoftware.kryonet.Connection;
-import com.esotericsoftware.kryonet.Listener;
+import com.esotericsoftware.kryonet.adapters.Listener;
 
 abstract public class TcpIdleSender extends Listener {
 	boolean started;

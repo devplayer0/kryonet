@@ -19,10 +19,7 @@
 
 package com.esotericsoftware.kryonet;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.minlog.Log;
+import com.esotericsoftware.kryonet.adapters.Listener;
 
 import java.io.IOException;
 import java.util.Arrays;

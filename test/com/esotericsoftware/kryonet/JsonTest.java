@@ -19,10 +19,9 @@
 
 package com.esotericsoftware.kryonet;
 
-import com.esotericsoftware.jsonbeans.JsonWriter;
+import com.esotericsoftware.kryonet.adapters.Listener;
 
 import java.io.IOException;
-import java.io.StringWriter;
 import java.util.Arrays;
 
 public class JsonTest extends KryoNetTestCase {

@@ -17,59 +17,29 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryonet;
+package com.esotericsoftware.kryonet.adapters;
 
-import com.esotericsoftware.kryonet.adapters.Listener;
+import com.esotericsoftware.kryonet.Client;
+import com.esotericsoftware.kryonet.Connection;
+import com.esotericsoftware.kryonet.Server;
 
-import java.io.IOException;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.atomic.AtomicInteger;
+/** Used to be notified about connection events. */
+public interface Listener<T extends Connection> {
+	/** Called when the remote end has been connected. This will be invoked before any objects are received by
+	 * {@link #received(Connection, Object)}. This will be invoked on the same thread as {@link Client#update(int)} and
+	 * {@link Server#update(int)}. This method should not block for long periods as other network activity will not be processed
+	 * until it returns. */
+	public void connected (T connection) ;
 
-public class ReconnectTest extends KryoNetTestCase {
-	public void testReconnect () throws IOException {
-		final Timer timer = new Timer();
+	/** Called when the remote end is no longer connected. There is no guarantee as to what thread will invoke this method. */
+	public void disconnected (T connection) ;
 
-		final Server server = new Server();
-		startEndPoint(server);
-		server.bind(tcpPort);
-		server.addListener(new Listener() {
-			public void connected (final Connection connection) {
-				timer.schedule(new TimerTask() {
-					public void run () {
-						System.out.println("Disconnecting after 2 seconds.");
-						connection.close();
-					}
-				}, 2000);
-			}
-		});
+	/** Called when an object has been received from the remote end of the connection. This will be invoked on the same thread as
+	 * {@link Client#update(int)} and {@link Server#update(int)}. This method should not block for long periods as other network
+	 * activity will not be processed until it returns. */
+	public void received (T connection, Object object) ;
 
-		// ----
+	/** Called when the connection is below the {@link Connection#setIdleThreshold(float) idle threshold}. */
+	public void idle (T connection) ;
 
-		final AtomicInteger reconnetCount = new AtomicInteger();
-		final Client client = new Client();
-		startEndPoint(client);
-		client.addListener(new Listener() {
-			public void disconnected (Connection connection) {
-				if (reconnetCount.getAndIncrement() == 2) {
-					stopEndPoints();
-					return;
-				}
-				new Thread() {
-					public void run () {
-						try {
-							System.out.println("Reconnecting: " + reconnetCount.get());
-							client.reconnect();
-						} catch (IOException ex) {
-							ex.printStackTrace();
-						}
-					}
-				}.start();
-			}
-		});
-		client.connect(5000, host, tcpPort);
-
-		waitForThreads(10000);
-		assertEquals(3, reconnetCount.getAndIncrement());
-	}
 }

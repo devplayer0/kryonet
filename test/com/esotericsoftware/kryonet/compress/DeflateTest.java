@@ -29,7 +29,7 @@ import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.KryoNetTestCase;
-import com.esotericsoftware.kryonet.Listener;
+import com.esotericsoftware.kryonet.adapters.Listener;
 import com.esotericsoftware.kryonet.Server;
 
 public class DeflateTest extends KryoNetTestCase {

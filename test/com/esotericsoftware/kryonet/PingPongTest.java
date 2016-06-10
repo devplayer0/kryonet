@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryonet.adapters.Listener;
 
 public class PingPongTest extends KryoNetTestCase {
 	String fail;

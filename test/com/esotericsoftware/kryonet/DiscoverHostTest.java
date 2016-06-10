@@ -30,6 +30,7 @@ import java.nio.channels.DatagramChannel;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryonet.adapters.Listener;
 
 public class DiscoverHostTest extends KryoNetTestCase {
 

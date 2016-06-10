@@ -20,9 +20,8 @@
 package com.esotericsoftware.kryonet;
 
 import java.io.IOException;
-import java.util.Arrays;
 
-import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryonet.adapters.Listener;
 
 public class MultipleThreadTest extends KryoNetTestCase {
 	int receivedServer, receivedClient1, receivedClient2;

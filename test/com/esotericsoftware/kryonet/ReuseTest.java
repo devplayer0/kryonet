@@ -19,6 +19,8 @@
 
 package com.esotericsoftware.kryonet;
 
+import com.esotericsoftware.kryonet.adapters.Listener;
+
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 

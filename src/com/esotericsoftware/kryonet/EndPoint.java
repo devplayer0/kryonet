@@ -22,6 +22,7 @@ package com.esotericsoftware.kryonet;
 import java.io.IOException;
 
 import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryonet.adapters.Listener;
 
 /** Represents the local end point of a connection.
  * @author Nathan Sweet <misc@n4te.com> */

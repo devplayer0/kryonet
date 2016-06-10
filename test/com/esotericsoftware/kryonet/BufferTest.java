@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryonet.adapters.Listener;
 
 public class BufferTest extends KryoNetTestCase {
 	AtomicInteger received = new AtomicInteger();

@@ -41,6 +41,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.FrameworkMessage.DiscoverHost;
 import com.esotericsoftware.kryonet.FrameworkMessage.RegisterTCP;
 import com.esotericsoftware.kryonet.FrameworkMessage.RegisterUDP;
+import com.esotericsoftware.kryonet.adapters.Listener;
 
 import static com.esotericsoftware.minlog.Log.*;
 

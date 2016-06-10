@@ -28,6 +28,7 @@ import java.nio.channels.SocketChannel;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.FrameworkMessage.Ping;
+import com.esotericsoftware.kryonet.adapters.Listener;
 
 import static com.esotericsoftware.minlog.Log.*;
 

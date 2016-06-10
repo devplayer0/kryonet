@@ -21,7 +21,6 @@ package com.esotericsoftware.kryonet;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -37,6 +36,7 @@ import com.esotericsoftware.kryo.util.IntMap;
 import com.esotericsoftware.kryonet.FrameworkMessage.DiscoverHost;
 import com.esotericsoftware.kryonet.FrameworkMessage.RegisterTCP;
 import com.esotericsoftware.kryonet.FrameworkMessage.RegisterUDP;
+import com.esotericsoftware.kryonet.adapters.Listener;
 
 import static com.esotericsoftware.minlog.Log.*;
 
