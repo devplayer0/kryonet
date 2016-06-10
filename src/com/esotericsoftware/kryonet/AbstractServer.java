@@ -65,8 +65,8 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 			final T connection = classTag.cast(conn);
 			final List<Listener<? super T>> listeners = AbstractServer.this.listeners;
 
-			for (int i = 0, n = listeners.size(); i < n; i++)
-				listeners.get(i).connected(connection);
+			for(Listener<? super T> listener : listeners)
+				listener.connected(connection);
 		}
 
 		public void disconnected (Connection conn) {
@@ -75,16 +75,16 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 
 			final List<Listener<? super T>> listeners = AbstractServer.this.listeners;
 
-			for (int i = 0, n = listeners.size(); i < n; i++)
-				listeners.get(i).disconnected(connection);
+			for(Listener<? super T> listener : listeners)
+				listener.disconnected(connection);
 		}
 
 		public void received (Connection conn, Object object) {
 			final T connection = classTag.cast(conn);
 			final List<Listener<? super T>> listeners = AbstractServer.this.listeners;
 
-			for (int i = 0, n = listeners.size(); i < n; i++)
-				listeners.get(i).received(connection, object);
+			for(Listener<? super T> listener : listeners)
+				listener.received(connection, object);
 		}
 
 		public void idle (Connection conn) {
@@ -92,8 +92,8 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 			final List<Listener<? super T>> listeners = AbstractServer.this.listeners;
 
 
-			for (int i = 0, n = listeners.size(); i < n; i++) {
-				listeners.get(i).idle(connection);
+			for(Listener<? super T> listener : listeners){
+				listener.idle(connection);
 				if (!connection.isIdle()) break;
 			}
 		}
@@ -374,8 +374,7 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 		}
 		long time = System.currentTimeMillis();
 		final List<T> connections = this.connections;
-		for (int i = 0, n = connections.size(); i < n; i++) {
-			T connection = connections.get(i);
+		for (T connection : connections) {
 			if (connection.tcp.isTimedOut(time)) {
 				if (DEBUG) debug("kryonet", connection + " timed out.");
 				connection.close();
@@ -389,8 +388,7 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 	private void keepAlive () {
 		long time = System.currentTimeMillis();
 		final List<T> connections = this.connections;
-		for (int i = 0, n = connections.size(); i < n; i++) {
-			T connection = connections.get(i);
+		for (T connection : connections) {
 			if (connection.tcp.needsKeepAlive(time)) connection.sendTCP(FrameworkMessage.keepAlive);
 		}
 	}
@@ -469,24 +467,21 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 
 	public void sendToAllTCP (Object object) {
 		final List<T> connections = this.connections;
-		for (int i = 0, n = connections.size(); i < n; i++) {
-			T connection = connections.get(i);
+		for (T connection: connections) {
 			connection.sendTCP(object);
 		}
 	}
 
 	public void sendToAllExceptTCP (int connectionID, Object object) {
 		final List<T> connections = this.connections;
-		for (int i = 0, n = connections.size(); i < n; i++) {
-			T connection = connections.get(i);
+		for (T connection: connections) {
 			if (connection.id != connectionID) connection.sendTCP(object);
 		}
 	}
 
 	public void sendToTCP (int connectionID, Object object) {
 		final List<T> connections = this.connections;
-		for (int i = 0, n = connections.size(); i < n; i++) {
-			T connection = connections.get(i);
+		for (T connection: connections) {
 			if (connection.id == connectionID) {
 				connection.sendTCP(object);
 				break;
@@ -496,24 +491,21 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 
 	public void sendToAllUDP (Object object) {
 		final List<T> connections = this.connections;
-		for (int i = 0, n = connections.size(); i < n; i++) {
-			T connection = connections.get(i);
+		for (T connection: connections) {
 			connection.sendUDP(object);
 		}
 	}
 
 	public void sendToAllExceptUDP (int connectionID, Object object) {
 		final List<T> connections = this.connections;
-		for (int i = 0, n = connections.size(); i < n; i++) {
-			T connection = connections.get(i);
+		for (T connection: connections) {
 			if (connection.id != connectionID) connection.sendUDP(object);
 		}
 	}
 
 	public void sendToUDP (int connectionID, Object object) {
 		final List<T> connections = this.connections;
-		for (int i = 0, n = connections.size(); i < n; i++) {
-			T connection = connections.get(i);
+		for (T connection: connections) {
 			if (connection.id == connectionID) {
 				connection.sendUDP(object);
 				break;
@@ -539,8 +531,8 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 	public void close () {
 		List<T> connections = this.connections;
 		if (INFO && connections.size() > 0) info("kryonet", "Closing server connections...");
-		for (int i = 0, n = connections.size(); i < n; i++)
-			connections.get(i).close();
+		for(T t : connections)
+			t.close();
 		connections.clear();
 
 		ServerSocketChannel serverChannel = this.serverChannel;
