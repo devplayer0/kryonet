@@ -53,7 +53,7 @@ public class ChatRmiClient {
 		// This allows the client to call methods on the server.
 		player = ObjectSpace.getRemoteObject(client, Network.PLAYER, IPlayer.class);
 
-		client.addListener(new Listener() {
+		client.addListener(new ConnectionAdapter() {
 			public void disconnected (Connection connection) {
 				EventQueue.invokeLater(new Runnable() {
 					public void run () {

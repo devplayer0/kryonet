@@ -19,11 +19,11 @@
 
 package com.esotericsoftware.kryonet;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+
 import java.io.IOException;
 import java.util.Arrays;
-
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryonet.adapters.Listener;
 
 public class PingPongTest extends KryoNetTestCase {
 	String fail;
@@ -40,7 +40,7 @@ public class PingPongTest extends KryoNetTestCase {
 		register(server.getKryo());
 		startEndPoint(server);
 		server.bind(tcpPort, udpPort);
-		server.addListener(new Listener() {
+		server.addListener(new ConnectionAdapter<Connection>() {
 			public void connected (Connection connection) {
 				connection.sendTCP(dataTCP);
 				connection.sendUDP(dataUDP); // Note UDP ping pong stops if a UDP packet is lost.
@@ -68,10 +68,10 @@ public class PingPongTest extends KryoNetTestCase {
 
 		// ----
 
-		final Client client = new Client(16384, 8192);
+		final Client client = Client.createKryoClient(16384, 8192);
 		register(client.getKryo());
 		startEndPoint(client);
-		client.addListener(new Listener() {
+		client.addListener(new ConnectionAdapter() {
 			public void received (Connection connection, Object object) {
 				if (object instanceof Data) {
 					Data data = (Data)object;

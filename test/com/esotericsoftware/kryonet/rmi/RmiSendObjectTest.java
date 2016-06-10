@@ -23,9 +23,8 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.KryoNetTestCase;
-import com.esotericsoftware.kryonet.adapters.Listener;
-import com.esotericsoftware.kryonet.adapters.Listener.ThreadedListener;
 import com.esotericsoftware.kryonet.Server;
+import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
 import com.esotericsoftware.kryonet.rmi.ObjectSpace.RemoteObjectSerializer;
 
 import java.io.IOException;
@@ -55,7 +54,7 @@ public class RmiSendObjectTest extends KryoNetTestCase {
 		serverObjectSpace.register(42, serverTestObject);
 		serverObjectSpace.register(777, serverTestObject.getOtherObject());
 
-		server.addListener(new Listener() {
+		server.addListener(new ConnectionAdapter<Connection>() {
 			public void connected (final Connection connection) {
 				// Allow the connection to access objects in the ObjectSpace.
 				serverObjectSpace.addConnection(connection);
@@ -69,12 +68,12 @@ public class RmiSendObjectTest extends KryoNetTestCase {
 
 		// ----
 
-		Client client = new Client();
+		Client<Connection> client = Client.createKryoClient();
 		register(client.getKryo());
 		startEndPoint(client);
 
 		// The ThreadedListener means the network thread won't be blocked when waiting for RMI responses.
-		client.addListener(new ThreadedListener(new Listener() {
+		client.addListener(new ConnectionAdapter.ThreadedListener<>(new ConnectionAdapter<Connection>() {
 			public void connected (final Connection connection) {
 				TestObject test = ObjectSpace.getRemoteObject(connection, 42, TestObject.class);
 				// Normal remote method call.

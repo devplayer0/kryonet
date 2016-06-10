@@ -33,7 +33,7 @@ public class PositionClient {
 		Network.register(client);
 
 		// ThreadedListener runs the listener methods on a different thread.
-		client.addListener(new ThreadedListener(new Listener() {
+		client.addListener(new ThreadedListener(new ConnectionAdapter() {
 			public void connected (Connection connection) {
 			}
 

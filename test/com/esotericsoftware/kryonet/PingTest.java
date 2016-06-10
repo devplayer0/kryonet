@@ -19,10 +19,10 @@
 
 package com.esotericsoftware.kryonet;
 
-import java.io.IOException;
-
 import com.esotericsoftware.kryonet.FrameworkMessage.Ping;
-import com.esotericsoftware.kryonet.adapters.Listener;
+import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+
+import java.io.IOException;
 
 public class PingTest extends KryoNetTestCase {
 	public void testPing () throws IOException {
@@ -32,9 +32,9 @@ public class PingTest extends KryoNetTestCase {
 
 		// ----
 
-		final Client client = new Client();
+		final Client<Connection> client = Client.createKryoClient();
 		startEndPoint(client);
-		client.addListener(new Listener() {
+		client.addListener(new ConnectionAdapter<Connection>() {
 			public void connected (Connection connection) {
 				client.updateReturnTripTime();
 			}

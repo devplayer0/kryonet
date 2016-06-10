@@ -19,7 +19,9 @@
 
 package com.esotericsoftware.kryonet;
 
-import static com.esotericsoftware.minlog.Log.*;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -28,9 +30,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryonet.adapters.Listener;
+import static com.esotericsoftware.minlog.Log.info;
 
 public class DiscoverHostTest extends KryoNetTestCase {
 
@@ -44,7 +44,7 @@ public class DiscoverHostTest extends KryoNetTestCase {
 		final Server server = new Server();
 		startEndPoint(server);
 		server.bind(54555);
-		server.addListener(new Listener() {
+		server.addListener(new ConnectionAdapter<Connection>() {
 			public void disconnected (Connection connection) {
 				broadcastServer.stop();
 				server.stop();
@@ -53,7 +53,7 @@ public class DiscoverHostTest extends KryoNetTestCase {
 
 		// ----
 
-		Client client = new Client();
+		Client client = Client.createKryoClient();
 		InetAddress host = client.discoverHost(udpPort, 2000);
 		if (host == null) {
 			stopEndPoints();
@@ -138,7 +138,7 @@ public class DiscoverHostTest extends KryoNetTestCase {
 		final Server server = new Server();
 		startEndPoint(server);
 		server.bind(54555);
-		server.addListener(new Listener() {
+		server.addListener(new ConnectionAdapter<Connection>() {
 			public void disconnected (Connection connection) {
 				broadcastServer.stop();
 				server.stop();
@@ -147,7 +147,7 @@ public class DiscoverHostTest extends KryoNetTestCase {
 
 		// ----
 
-		Client client = new Client();
+		Client client = Client.createKryoClient();
 
 		client.getKryo().register(DiscoveryResponsePacket.class);
 		client.setDiscoveryHandler(clientDiscoveryHandler);

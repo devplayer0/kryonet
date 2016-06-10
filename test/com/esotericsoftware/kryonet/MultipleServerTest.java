@@ -19,10 +19,10 @@
 
 package com.esotericsoftware.kryonet;
 
+import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import com.esotericsoftware.kryonet.adapters.Listener;
 
 public class MultipleServerTest extends KryoNetTestCase {
 	AtomicInteger received = new AtomicInteger();
@@ -32,7 +32,7 @@ public class MultipleServerTest extends KryoNetTestCase {
 		server1.getKryo().register(String[].class);
 		startEndPoint(server1);
 		server1.bind(tcpPort, udpPort);
-		server1.addListener(new Listener() {
+		server1.addListener(new ConnectionAdapter<Connection>() {
 			public void received (Connection connection, Object object) {
 				if (object instanceof String) {
 					if (!object.equals("client1")) fail();
@@ -45,7 +45,7 @@ public class MultipleServerTest extends KryoNetTestCase {
 		server2.getKryo().register(String[].class);
 		startEndPoint(server2);
 		server2.bind(tcpPort + 1, udpPort + 1);
-		server2.addListener(new Listener() {
+		server2.addListener(new ConnectionAdapter<Connection>() {
 			public void received (Connection connection, Object object) {
 				if (object instanceof String) {
 					if (!object.equals("client2")) fail();
@@ -56,20 +56,20 @@ public class MultipleServerTest extends KryoNetTestCase {
 
 		// ----
 
-		Client client1 = new Client(16384, 8192);
+		Client client1 = Client.createKryoClient(16384, 8192);
 		client1.getKryo().register(String[].class);
 		startEndPoint(client1);
-		client1.addListener(new Listener() {
+		client1.addListener(new ConnectionAdapter<Connection>() {
 			public void connected (Connection connection) {
 				connection.sendTCP("client1");
 			}
 		});
 		client1.connect(5000, host, tcpPort, udpPort);
 
-		Client client2 = new Client(16384, 8192);
+		Client client2 = Client.createKryoClient(16384, 8192);
 		client2.getKryo().register(String[].class);
 		startEndPoint(client2);
-		client2.addListener(new Listener() {
+		client2.addListener(new ConnectionAdapter<Connection>() {
 			public void connected (Connection connection) {
 				connection.sendTCP("client2");
 			}

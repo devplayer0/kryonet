@@ -19,23 +19,6 @@
 
 package com.esotericsoftware.kryonet.rmi;
 
-import static com.esotericsoftware.minlog.Log.*;
-
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Proxy;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
-
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.KryoException;
 import com.esotericsoftware.kryo.KryoSerializable;
@@ -49,9 +32,19 @@ import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.EndPoint;
 import com.esotericsoftware.kryonet.FrameworkMessage;
 import com.esotericsoftware.kryonet.KryoNetException;
+import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
 import com.esotericsoftware.kryonet.adapters.Listener;
 import com.esotericsoftware.kryonet.util.ObjectIntMap;
 import com.esotericsoftware.reflectasm.MethodAccess;
+
+import java.lang.reflect.*;
+import java.util.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
+
+import static com.esotericsoftware.minlog.Log.*;
 
 /** Allows methods on objects to be invoked remotely over TCP or UDP. Objects are {@link #register(int, Object) registered} with an
  * ID. The remote end of connections that have been {@link #addConnection(Connection) added} are allowed to
@@ -68,7 +61,7 @@ public class ObjectSpace {
 
 	static private final Object instancesLock = new Object();
 	static ObjectSpace[] instances = new ObjectSpace[0];
-	static private final HashMap<Class, CachedMethod[]> methodCache = new HashMap();
+	static private final HashMap<Class, CachedMethod[]> methodCache = new HashMap<>();
 	static private boolean asm = true;
 
 	final IntMap idToObject = new IntMap();
@@ -77,7 +70,7 @@ public class ObjectSpace {
 	final Object connectionsLock = new Object();
 	Executor executor;
 
-	private final Listener invokeListener = new Listener() {
+	private final Listener invokeListener = new ConnectionAdapter() {
 		public void received (final Connection connection, Object object) {
 			if (!(object instanceof InvokeMethod)) return;
 			if (connections != null) {
@@ -317,7 +310,7 @@ public class ObjectSpace {
 			this.connection = connection;
 			this.objectID = objectID;
 
-			responseListener = new Listener() {
+			responseListener = new ConnectionAdapter() {
 				public void received (Connection connection, Object object) {
 					if (!(object instanceof InvokeMethodResult)) return;
 					InvokeMethodResult invokeMethodResult = (InvokeMethodResult)object;

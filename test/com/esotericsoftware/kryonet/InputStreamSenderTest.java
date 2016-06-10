@@ -19,12 +19,12 @@
 
 package com.esotericsoftware.kryonet;
 
+import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+import com.esotericsoftware.kryonet.util.InputStreamSender;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-
-import com.esotericsoftware.kryonet.adapters.Listener;
-import com.esotericsoftware.kryonet.util.InputStreamSender;
 
 public class InputStreamSenderTest extends KryoNetTestCase {
 	boolean success;
@@ -36,7 +36,7 @@ public class InputStreamSenderTest extends KryoNetTestCase {
 		server.getKryo().setRegistrationRequired(false);
 		startEndPoint(server);
 		server.bind(tcpPort, udpPort);
-		server.addListener(new Listener() {
+		server.addListener(new ConnectionAdapter<Connection>() {
 			public void connected (Connection connection) {
 				ByteArrayOutputStream output = new ByteArrayOutputStream(largeDataSize);
 				for (int i = 0; i < largeDataSize; i++)
@@ -59,10 +59,10 @@ public class InputStreamSenderTest extends KryoNetTestCase {
 
 		// ----
 
-		final Client client = new Client(16384, 8192);
+		final Client client = Client.createKryoClient(16384, 8192);
 		client.getKryo().setRegistrationRequired(false);
 		startEndPoint(client);
-		client.addListener(new Listener() {
+		client.addListener(new ConnectionAdapter() {
 			int total;
 
 			public void received (Connection connection, Object object) {

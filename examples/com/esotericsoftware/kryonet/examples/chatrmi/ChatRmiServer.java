@@ -37,7 +37,7 @@ public class ChatRmiServer {
 		// Register the classes that will be sent over the network.
 		Network.register(server);
 
-		server.addListener(new Listener() {
+		server.addListener(new ConnectionAdapter() {
 			public void disconnected (Connection connection) {
 				Player player = (Player)connection;
 				players.remove(player);

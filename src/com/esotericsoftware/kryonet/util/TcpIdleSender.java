@@ -20,9 +20,9 @@
 package com.esotericsoftware.kryonet.util;
 
 import com.esotericsoftware.kryonet.Connection;
-import com.esotericsoftware.kryonet.adapters.Listener;
+import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
 
-abstract public class TcpIdleSender extends Listener {
+abstract public class TcpIdleSender extends ConnectionAdapter<Connection> {
 	boolean started;
 
 	public void idle (Connection connection) {

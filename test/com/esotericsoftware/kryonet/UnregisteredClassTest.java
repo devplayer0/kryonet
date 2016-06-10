@@ -19,7 +19,7 @@
 
 package com.esotericsoftware.kryonet;
 
-import com.esotericsoftware.kryonet.adapters.Listener;
+import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -39,7 +39,7 @@ public class UnregisteredClassTest extends KryoNetTestCase {
 		server.getKryo().setRegistrationRequired(false);
 		startEndPoint(server);
 		server.bind(tcpPort, udpPort);
-		server.addListener(new Listener() {
+		server.addListener(new ConnectionAdapter<Connection>() {
 			public void connected (Connection connection) {
 				connection.sendTCP(dataTCP);
 				connection.sendUDP(dataUDP);
@@ -61,10 +61,10 @@ public class UnregisteredClassTest extends KryoNetTestCase {
 
 		// ----
 
-		final Client client = new Client(1024 * 32, 1024 * 16);
+		final Client<Connection> client = Client.createKryoClient(1024 * 32, 1024 * 16);
 		client.getKryo().setRegistrationRequired(false);
 		startEndPoint(client);
-		client.addListener(new Listener() {
+		client.addListener(new ConnectionAdapter<Connection>() {
 			public void received (Connection connection, Object object) {
 				if (object instanceof Data) {
 					Data data = (Data)object;

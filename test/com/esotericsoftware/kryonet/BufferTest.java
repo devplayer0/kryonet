@@ -19,11 +19,11 @@
 
 package com.esotericsoftware.kryonet;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryonet.adapters.Listener;
 
 public class BufferTest extends KryoNetTestCase {
 	AtomicInteger received = new AtomicInteger();
@@ -39,7 +39,7 @@ public class BufferTest extends KryoNetTestCase {
 		register(server.getKryo());
 		server.bind(tcpPort);
 
-		server.addListener(new Listener() {
+		server.addListener(new ConnectionAdapter<Connection>() {
 			AtomicInteger received = new AtomicInteger();
 			AtomicInteger receivedBytes = new AtomicInteger();
 
@@ -60,12 +60,12 @@ public class BufferTest extends KryoNetTestCase {
 			}
 		});
 
-		final Client client = new Client(writeBufferSize, objectBufferSize);
+		final Client client = Client.createKryoClient(writeBufferSize, objectBufferSize);
 		startEndPoint(client);
 		register(client.getKryo());
 		client.connect(5000, host, tcpPort);
 
-		client.addListener(new Listener() {
+		client.addListener(new ConnectionAdapter() {
 			AtomicInteger received = new AtomicInteger();
 			AtomicInteger receivedBytes = new AtomicInteger();
 

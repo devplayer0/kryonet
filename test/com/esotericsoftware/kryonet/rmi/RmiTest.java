@@ -23,8 +23,8 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.KryoNetTestCase;
-import com.esotericsoftware.kryonet.adapters.Listener;
 import com.esotericsoftware.kryonet.Server;
+import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
 
 import java.io.IOException;
 
@@ -44,7 +44,7 @@ public class RmiTest extends KryoNetTestCase {
 		final ObjectSpace serverObjectSpace = new ObjectSpace();
 		serverObjectSpace.register(42, serverTestObject);
 
-		server.addListener(new Listener() {
+		server.addListener(new ConnectionAdapter<Connection>() {
 			public void connected (final Connection connection) {
 				serverObjectSpace.addConnection(connection);
 				runTest(connection, 12, 1234);
@@ -62,15 +62,15 @@ public class RmiTest extends KryoNetTestCase {
 
 		// ----
 
-		Client client = new Client();
+		Client<Connection> client = Client.createKryoClient();
 		register(client.getKryo());
 
-		ObjectSpace clientObjectSpace = new ObjectSpace(client);
+		ObjectSpace clientObjectSpace = new ObjectSpace(client.getConnection());
 		final TestObjectImpl clientTestObject = new TestObjectImpl(1234);
 		clientObjectSpace.register(12, clientTestObject);
 
 		startEndPoint(client);
-		client.addListener(new Listener() {
+		client.addListener(new ConnectionAdapter<Connection>() {
 			public void connected (final Connection connection) {
 				runTest(connection, 42, 4321);
 			}
@@ -102,7 +102,7 @@ public class RmiTest extends KryoNetTestCase {
 		final ObjectSpace serverObjectSpace = new ObjectSpace();
 		serverObjectSpace.register(42, serverTestObject);
 
-		server.addListener(new Listener() {
+		server.addListener(new ConnectionAdapter<Connection>() {
 			public void connected (final Connection connection) {
 				serverObjectSpace.addConnection(connection);
 			}
@@ -117,11 +117,11 @@ public class RmiTest extends KryoNetTestCase {
 
 		// ----
 
-		Client client = new Client();
+		Client client = Client.createKryoClient();
 		register(client.getKryo());
 
 		startEndPoint(client);
-		client.addListener(new Listener() {
+		client.addListener(new ConnectionAdapter<Connection>() {
 			public void connected (final Connection connection) {
 				new Thread() {
 					public void run () {

@@ -19,16 +19,18 @@
 
 package com.esotericsoftware.kryonet;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryonet.FrameworkMessage.Ping;
+import com.esotericsoftware.kryonet.adapters.Listener;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.nio.channels.SocketChannel;
-
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryonet.FrameworkMessage.Ping;
-import com.esotericsoftware.kryonet.adapters.Listener;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static com.esotericsoftware.minlog.Log.*;
 
@@ -44,19 +46,20 @@ public class Connection {
 	TcpConnection tcp;
 	UdpConnection udp;
 	InetSocketAddress udpRemoteAddress;
-	private Listener[] listeners = {};
-	private Object listenerLock = new Object();
 	private int lastPingID;
 	private long lastPingSendTime;
 	private int returnTripTime;
 	volatile boolean isConnected;
 	volatile KryoNetException lastProtocolError;
 
+	private final List<Listener<Connection>> listeners = new CopyOnWriteArrayList<>();
+
 	protected Connection () {
 	}
 
-	void initialize (Serialization serialization, int writeBufferSize, int objectBufferSize) {
+	void initialize (Serialization serialization, Listener<Connection> handler, int writeBufferSize, int objectBufferSize) {
 		tcp = new TcpConnection(serialization, writeBufferSize, objectBufferSize);
+		listeners.add(handler);
 	}
 
 	/** Returns the server assigned ID. Will return -1 if this connection has never been connected or the last assigned ID if this
@@ -89,7 +92,7 @@ public class Connection {
 			if (length == 0) {
 				if (TRACE) trace("kryonet", this + " TCP had nothing to send.");
 			} else if (DEBUG) {
-				String objectString = object == null ? "null" : object.getClass().getSimpleName();
+				String objectString = object.getClass().getSimpleName();
 				if (!(object instanceof FrameworkMessage)) {
 					debug("kryonet", this + " sent TCP: " + objectString + " (" + length + ")");
 				} else if (TRACE) {
@@ -126,7 +129,7 @@ public class Connection {
 				if (TRACE) trace("kryonet", this + " UDP had nothing to send.");
 			} else if (DEBUG) {
 				if (length != -1) {
-					String objectString = object == null ? "null" : object.getClass().getSimpleName();
+					String objectString = object.getClass().getSimpleName();
 					if (!(object instanceof FrameworkMessage)) {
 						debug("kryonet", this + " sent UDP: " + objectString + " (" + length + ")");
 					} else if (TRACE) {
@@ -193,39 +196,7 @@ public class Connection {
 		tcp.timeoutMillis = timeoutMillis;
 	}
 
-	/** If the listener already exists, it is not added again. */
-	public void addListener (Listener listener) {
-		if (listener == null) throw new IllegalArgumentException("listener cannot be null.");
-		synchronized (listenerLock) {
-			Listener[] listeners = this.listeners;
-			int n = listeners.length;
-			for (int i = 0; i < n; i++)
-				if (listener == listeners[i]) return;
-			Listener[] newListeners = new Listener[n + 1];
-			newListeners[0] = listener;
-			System.arraycopy(listeners, 0, newListeners, 1, n);
-			this.listeners = newListeners;
-		}
-		if (TRACE) trace("kryonet", "Connection listener added: " + listener.getClass().getName());
-	}
 
-	public void removeListener (Listener listener) {
-		if (listener == null) throw new IllegalArgumentException("listener cannot be null.");
-		synchronized (listenerLock) {
-			Listener[] listeners = this.listeners;
-			int n = listeners.length;
-			if (n == 0) return;
-			Listener[] newListeners = new Listener[n - 1];
-			for (int i = 0, ii = 0; i < n; i++) {
-				Listener copyListener = listeners[i];
-				if (listener == copyListener) continue;
-				if (ii == n - 1) return;
-				newListeners[ii++] = copyListener;
-			}
-			this.listeners = newListeners;
-		}
-		if (TRACE) trace("kryonet", "Connection listener removed: " + listener.getClass().getName());
-	}
 
 	void notifyConnected () {
 		if (INFO) {
@@ -238,23 +209,18 @@ public class Connection {
 				}
 			}
 		}
-		Listener[] listeners = this.listeners;
-		for (int i = 0, n = listeners.length; i < n; i++)
-			listeners[i].connected(this);
+		for(Listener<Connection> l : listeners)
+			l.connected(this);
 	}
 
 	void notifyDisconnected () {
-		Listener[] listeners = this.listeners;
-		for (int i = 0, n = listeners.length; i < n; i++)
-			listeners[i].disconnected(this);
+		for(Listener<Connection> l : listeners)
+			l.disconnected(this);
 	}
 
 	void notifyIdle () {
-		Listener[] listeners = this.listeners;
-		for (int i = 0, n = listeners.length; i < n; i++) {
-			listeners[i].idle(this);
-			if (!isIdle()) break;
-		}
+		for(Listener<Connection> l : listeners)
+			l.idle(this);
 	}
 
 	void notifyReceived (Object object) {
@@ -270,10 +236,22 @@ public class Connection {
 				sendTCP(ping);
 			}
 		}
-		Listener[] listeners = this.listeners;
-		for (int i = 0, n = listeners.length; i < n; i++)
-			listeners[i].received(this, object);
+
+		for(Listener<Connection> l : listeners)
+			l.received(this, object);
 	}
+
+
+
+	public void addListener(Listener<Connection> listener){
+		listeners.add(listener);
+	}
+
+	public void removeListener(Listener<Connection> listener){
+		listeners.remove(listener);
+	}
+
+
 
 	/** Returns the local {@link Client} or {@link Server} to which this connection belongs. */
 	public EndPoint getEndPoint () {
@@ -329,13 +307,16 @@ public class Connection {
 		tcp.idleThreshold = idleThreshold;
 	}
 
+	@Override
 	public String toString () {
-		if (name != null) return name;
-		return "Connection " + id;
+		if (name != null)
+			return "Connection(" + name + ")";
+		return "Connection(" + id + ")";
 	}
 
 	void setConnected (boolean isConnected) {
 		this.isConnected = isConnected;
 		if (isConnected && name == null) name = "Connection " + id;
 	}
+
 }

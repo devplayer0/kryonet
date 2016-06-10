@@ -19,7 +19,7 @@
 
 package com.esotericsoftware.kryonet;
 
-import com.esotericsoftware.kryonet.adapters.Listener;
+import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -38,7 +38,7 @@ public class JsonTest extends KryoNetTestCase {
 		final Server server = new Server(16384, 8192, new JsonSerialization());
 		startEndPoint(server);
 		server.bind(tcpPort, udpPort);
-		server.addListener(new Listener() {
+		server.addListener(new ConnectionAdapter<Connection>() {
 			public void connected (Connection connection) {
 				connection.sendTCP(dataTCP);
 				connection.sendUDP(dataUDP); // Note UDP ping pong stops if a UDP packet is lost.
@@ -66,9 +66,9 @@ public class JsonTest extends KryoNetTestCase {
 
 		// ----
 
-		final Client client = new Client(16384, 8192, new JsonSerialization());
+		final Client client = Client.createClient(16384, 8192, new JsonSerialization());
 		startEndPoint(client);
-		client.addListener(new Listener() {
+		client.addListener(new ConnectionAdapter<Connection>() {
 			public void received (Connection connection, Object object) {
 				if (object instanceof Data) {
 					Data data = (Data)object;

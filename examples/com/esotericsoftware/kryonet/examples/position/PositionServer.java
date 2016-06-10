@@ -38,7 +38,7 @@ public class PositionServer {
 		// registered by the same method for both the client and server.
 		Network.register(server);
 
-		server.addListener(new Listener() {
+		server.addListener(new ConnectionAdapter() {
 			public void received (Connection c, Object object) {
 				// We know all connections for this server are actually CharacterConnections.
 				CharacterConnection connection = (CharacterConnection)c;

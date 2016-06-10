@@ -19,21 +19,22 @@
 
 package com.esotericsoftware.kryonet;
 
-import java.io.IOException;
-
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.adapters.Listener;
 
+import java.io.Closeable;
+import java.io.IOException;
+
 /** Represents the local end point of a connection.
  * @author Nathan Sweet <misc@n4te.com> */
-public interface EndPoint extends Runnable {
+public interface EndPoint<T extends Connection> extends Runnable, Closeable {
 	/** Gets the serialization instance that will be used to serialize and deserialize objects. */
 	public Serialization getSerialization ();
 
 	/** If the listener already exists, it is not added again. */
-	public void addListener (Listener listener);
+	public void addListener (Listener<? super T> listener);
 
-	public void removeListener (Listener listener);
+	public void removeListener (Listener<? super T> listener);
 
 	/** Continually updates this end point until {@link #stop()} is called. */
 	public void run ();

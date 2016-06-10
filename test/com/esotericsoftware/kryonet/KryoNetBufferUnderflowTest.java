@@ -19,7 +19,7 @@
 
 package com.esotericsoftware.kryonet;
 
-import com.esotericsoftware.kryonet.adapters.Listener;
+import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
 
 import java.io.IOException;
 import java.lang.Thread.UncaughtExceptionHandler;
@@ -39,9 +39,9 @@ public class KryoNetBufferUnderflowTest {
 		System.out.println("Server listening on port " + port);
 
 		// Creating client
-		final Client client = new Client(writeBufferSize, objectBufferSize);
+		final Client client = Client.createKryoClient(writeBufferSize, objectBufferSize);
 		client.start();
-		client.addListener(new Listener() {
+		client.addListener(new ConnectionAdapter() {
 			@Override
 			public void received (Connection connection, Object object) {
 				if (object instanceof String) {

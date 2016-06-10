@@ -19,9 +19,6 @@
 
 package com.esotericsoftware.kryonet.compress;
 
-import java.io.IOException;
-import java.util.ArrayList;
-
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.serializers.CollectionSerializer;
 import com.esotericsoftware.kryo.serializers.DeflateSerializer;
@@ -29,8 +26,11 @@ import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.KryoNetTestCase;
-import com.esotericsoftware.kryonet.adapters.Listener;
 import com.esotericsoftware.kryonet.Server;
+import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+
+import java.io.IOException;
+import java.util.ArrayList;
 
 public class DeflateTest extends KryoNetTestCase {
 	public void testDeflate () throws IOException {
@@ -48,7 +48,7 @@ public class DeflateTest extends KryoNetTestCase {
 
 		startEndPoint(server);
 		server.bind(tcpPort, udpPort);
-		server.addListener(new Listener() {
+		server.addListener(new ConnectionAdapter<Connection>() {
 			public void connected (Connection connection) {
 				server.sendToAllTCP(data);
 				connection.sendTCP(data);
@@ -58,10 +58,10 @@ public class DeflateTest extends KryoNetTestCase {
 
 		// ----
 
-		final Client client = new Client();
+		final Client<Connection> client = Client.createKryoClient();
 		register(client.getKryo());
 		startEndPoint(client);
-		client.addListener(new Listener() {
+		client.addListener(new ConnectionAdapter<Connection>() {
 			public void received (Connection connection, Object object) {
 				if (object instanceof SomeData) {
 					SomeData data = (SomeData)object;

@@ -33,7 +33,7 @@ public class ChatServer {
 		// registered by the same method for both the client and server.
 		Network.register(server);
 
-		server.addListener(new Listener() {
+		server.addListener(new ConnectionAdapter() {
 			public void received (Connection c, Object object) {
 				// We know all connections for this server are actually ChatConnections.
 				ChatConnection connection = (ChatConnection)c;
