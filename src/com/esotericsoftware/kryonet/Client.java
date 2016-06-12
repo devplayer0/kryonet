@@ -24,6 +24,9 @@ import com.esotericsoftware.kryonet.FrameworkMessage.DiscoverHost;
 import com.esotericsoftware.kryonet.FrameworkMessage.RegisterTCP;
 import com.esotericsoftware.kryonet.FrameworkMessage.RegisterUDP;
 import com.esotericsoftware.kryonet.adapters.Listener;
+import com.esotericsoftware.kryonet.serializers.KryoSerialization;
+import com.esotericsoftware.kryonet.serializers.Serialization;
+import com.esotericsoftware.kryonet.util.KryoNetException;
 
 import java.io.IOException;
 import java.net.*;
@@ -572,24 +575,20 @@ public class Client<T extends Connection> implements EndPoint<T> {
 		}
 	}
 
-	public static Client<Connection> createKryoClient() {
-		return new Client<>(new Connection());
+	public boolean isIdle(){
+		return connection.isIdle();
+	}
+
+	public boolean isConnected(){
+		return connection.isConnected();
 	}
 
 	public T getConnection() {
 		return connection;
 	}
 
-	public static Client<Connection> createKryoClient(int writeBufferSize, int objectBufferSize) {
-		return new Client<>(new Connection(), writeBufferSize, objectBufferSize);
-	}
-
 	public void updateReturnTripTime() {
 		connection.updateReturnTripTime();
-	}
-
-	public static Client<Connection> createClient(int writeBufferSize, int objectBufferSize, Serialization format) {
-		return new Client<>(new Connection(), writeBufferSize, objectBufferSize, format);
 	}
 
 	public void sendTCP(Object msg) {
@@ -598,5 +597,19 @@ public class Client<T extends Connection> implements EndPoint<T> {
 
 	public void sendUDP(Object msg){
 		connection.sendUDP(msg);
+	}
+
+
+	// Factory methods
+	public static Client<Connection> createKryoClient() {
+		return new Client<>(new Connection());
+	}
+
+	public static Client<Connection> createKryoClient(int writeBufferSize, int objectBufferSize) {
+		return new Client<>(new Connection(), writeBufferSize, objectBufferSize);
+	}
+
+	public static Client<Connection> createClient(int writeBufferSize, int objectBufferSize, Serialization format) {
+		return new Client<>(new Connection(), writeBufferSize, objectBufferSize, format);
 	}
 }

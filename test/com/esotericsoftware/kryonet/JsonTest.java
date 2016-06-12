@@ -20,6 +20,7 @@
 package com.esotericsoftware.kryonet;
 
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+import com.esotericsoftware.kryonet.serializers.JsonSerialization;
 
 import java.io.IOException;
 import java.util.Arrays;

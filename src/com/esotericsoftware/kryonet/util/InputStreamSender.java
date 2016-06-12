@@ -22,8 +22,6 @@ package com.esotericsoftware.kryonet.util;
 import java.io.IOException;
 import java.io.InputStream;
 
-import com.esotericsoftware.kryonet.KryoNetException;
-
 abstract public class InputStreamSender extends TcpIdleSender {
 	private final InputStream input;
 	private final byte[] chunk;

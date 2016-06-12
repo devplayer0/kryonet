@@ -21,6 +21,8 @@ package com.esotericsoftware.kryonet;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.adapters.Listener;
+import com.esotericsoftware.kryonet.serializers.KryoSerialization;
+import com.esotericsoftware.kryonet.serializers.Serialization;
 
 import java.io.Closeable;
 import java.io.IOException;

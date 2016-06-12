@@ -25,6 +25,9 @@ import com.esotericsoftware.kryonet.FrameworkMessage.DiscoverHost;
 import com.esotericsoftware.kryonet.FrameworkMessage.RegisterTCP;
 import com.esotericsoftware.kryonet.FrameworkMessage.RegisterUDP;
 import com.esotericsoftware.kryonet.adapters.Listener;
+import com.esotericsoftware.kryonet.serializers.KryoSerialization;
+import com.esotericsoftware.kryonet.serializers.Serialization;
+import com.esotericsoftware.kryonet.util.KryoNetException;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -40,6 +43,9 @@ import static com.esotericsoftware.minlog.Log.*;
 /** Manages TCP and optionally UDP connections from many {@link Client Clients}.
  * @author Nathan Sweet <misc@n4te.com> */
 public abstract class AbstractServer<T extends Connection> implements EndPoint<T> {
+	public static final int DEFAULT_WRITE_BUFFER = 16384, DEFAULT_OBJ_BUFFER = 2048;
+
+
 	private final Serialization serialization;
 	private final int writeBufferSize, objectBufferSize;
 	private final Selector selector;
@@ -101,7 +107,7 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 
 	/** Creates a Server with a write buffer size of 16384 and an object buffer size of 2048. */
 	public AbstractServer (Class<T> tag) {
-		this(tag, 16384, 2048);
+		this(tag, DEFAULT_WRITE_BUFFER, DEFAULT_OBJ_BUFFER);
 	}
 
 	/** @param writeBufferSize One buffer of this size is allocated for each connected client. Objects are serialized to the write
@@ -193,14 +199,11 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 		synchronized (updateLock) { // Blocks to avoid a select while the selector is used to bind the server connection.
 		}
 		long startTime = System.currentTimeMillis();
-		int select = 0;
-		if (timeout > 0) {
-			select = selector.select(timeout);
-		} else {
-			select = selector.selectNow();
-		}
+
+		final int select = (timeout > 0) ? selector.select(timeout) : selector.selectNow() ;
+
 		if (select == 0) {
-			emptySelects++;
+			++emptySelects;
 			if (emptySelects == 100) {
 				emptySelects = 0;
 				// NIO freaks and returns immediately with 0 sometimes, so try to keep from hogging the CPU.
@@ -428,7 +431,7 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 			SelectionKey selectionKey = connection.tcp.accept(selector, socketChannel);
 			selectionKey.attach(connection);
 
-			int id = nextConnectionID++;
+			int id = ++nextConnectionID;
 			if (nextConnectionID == -1) nextConnectionID = 1;
 			connection.id = id;
 			connection.setConnected(true);

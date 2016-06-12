@@ -19,6 +19,9 @@
 
 package com.esotericsoftware.kryonet;
 
+import com.esotericsoftware.kryonet.serializers.Serialization;
+import com.esotericsoftware.kryonet.util.KryoNetException;
+
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketAddress;

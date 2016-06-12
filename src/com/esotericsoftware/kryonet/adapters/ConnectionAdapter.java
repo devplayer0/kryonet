@@ -82,9 +82,9 @@ public class ConnectionAdapter<T extends Connection> implements Listener<T> {
     /** Wraps a listener and queues notifications as {@link Runnable runnables}. This allows the runnables to be processed on a
      * different thread, preventing the connection's update thread from being blocked. */
     static public abstract class QueuedListener<T extends Connection> extends ConnectionAdapter<T> {
-        final Listener listener;
+        final Listener<T> listener;
 
-        public QueuedListener (Listener listener) {
+        public QueuedListener (Listener<T> listener) {
             if (listener == null) throw new IllegalArgumentException("listener cannot be null.");
             this.listener = listener;
         }
@@ -133,12 +133,12 @@ public class ConnectionAdapter<T extends Connection> implements Listener<T> {
         protected final ExecutorService threadPool;
 
         /** Creates a single thread to process notification events. */
-        public ThreadedListener (Listener listener) {
+        public ThreadedListener (Listener<T> listener) {
             this(listener, Executors.newFixedThreadPool(1));
         }
 
         /** Uses the specified threadPool to process notification events. */
-        public ThreadedListener (Listener listener, ExecutorService threadPool) {
+        public ThreadedListener (Listener<T> listener, ExecutorService threadPool) {
             super(listener);
             if (threadPool == null) throw new IllegalArgumentException("threadPool cannot be null.");
             this.threadPool = threadPool;
@@ -158,7 +158,7 @@ public class ConnectionAdapter<T extends Connection> implements Listener<T> {
         private final int lagMillisMin, lagMillisMax;
         final LinkedList<Runnable> runnables = new LinkedList<>();
 
-        public LagListener (int lagMillisMin, int lagMillisMax, Listener listener) {
+        public LagListener (int lagMillisMin, int lagMillisMax, Listener<T> listener) {
             super(listener);
             this.lagMillisMin = lagMillisMin;
             this.lagMillisMax = lagMillisMax;

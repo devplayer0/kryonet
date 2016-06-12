@@ -31,7 +31,7 @@ import com.esotericsoftware.kryo.util.Util;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.EndPoint;
 import com.esotericsoftware.kryonet.FrameworkMessage;
-import com.esotericsoftware.kryonet.KryoNetException;
+import com.esotericsoftware.kryonet.util.KryoNetException;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
 import com.esotericsoftware.kryonet.adapters.Listener;
 import com.esotericsoftware.kryonet.util.ObjectIntMap;

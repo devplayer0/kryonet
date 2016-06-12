@@ -22,6 +22,8 @@ package com.esotericsoftware.kryonet;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.FrameworkMessage.Ping;
 import com.esotericsoftware.kryonet.adapters.Listener;
+import com.esotericsoftware.kryonet.serializers.Serialization;
+import com.esotericsoftware.kryonet.util.KryoNetException;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

@@ -1,5 +1,7 @@
 package com.esotericsoftware.kryonet;
 
+import com.esotericsoftware.kryonet.serializers.Serialization;
+
 /**
  * Created by Evan on 6/9/16.
  */
@@ -25,4 +27,6 @@ public class Server extends AbstractServer<Connection> {
     protected Connection newConnection() {
         return new Connection();
     }
+
+
 }

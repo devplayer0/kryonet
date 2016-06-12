@@ -22,6 +22,7 @@ package com.esotericsoftware.kryonet;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+import com.esotericsoftware.kryonet.serializers.Serialization;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
