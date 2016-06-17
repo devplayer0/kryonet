@@ -239,7 +239,7 @@ public class Client<T extends Connection> implements EndPoint<T> {
 					while (!udpRegistered && System.currentTimeMillis() < endTime) {
 						RegisterUDP registerUDP = new RegisterUDP();
 						registerUDP.connectionID = connection.id;
-						connection.udp.send(connection, registerUDP, udpAddress);
+						connection.udp.send(registerUDP, udpAddress);
 						try {
 							udpRegistrationLock.wait(100);
 						} catch (InterruptedException ignored) {
@@ -312,7 +312,7 @@ public class Client<T extends Connection> implements EndPoint<T> {
 						if ((ops & SelectionKey.OP_READ) == SelectionKey.OP_READ) {
 							if (selectionKey.attachment() == connection.tcp) {
 								while (true) {
-									Object object = connection.tcp.readObject(connection);
+									Object object = connection.tcp.readObject();
 									if (object == null) break;
 									if (!tcpRegistered) {
 										if (object instanceof RegisterTCP) {
@@ -356,7 +356,7 @@ public class Client<T extends Connection> implements EndPoint<T> {
 								}
 							} else {
 								if (connection.udp.readFromAddress() == null) continue;
-								Object object = connection.udp.readObject(connection);
+								Object object = connection.udp.readObject();
 								if (object == null) continue;
 								if (DEBUG) {
 									String objectString = object.getClass().getSimpleName();
@@ -492,7 +492,7 @@ public class Client<T extends Connection> implements EndPoint<T> {
 
 	private void broadcast (int udpPort, DatagramSocket socket) throws IOException {
 		ByteBuffer dataBuffer = ByteBuffer.allocate(64);
-		serialization.write(null, dataBuffer, new DiscoverHost());
+		serialization.write(dataBuffer, new DiscoverHost());
 		dataBuffer.flip();
 		byte[] data = new byte[dataBuffer.limit()];
 		dataBuffer.get(data);

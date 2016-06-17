@@ -19,22 +19,21 @@
 
 package com.esotericsoftware.kryonet;
 
+import com.esotericsoftware.minlog.Log;
+import com.esotericsoftware.minlog.Log.Logger;
+import junit.framework.TestCase;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import junit.framework.TestCase;
-
-import com.esotericsoftware.minlog.Log;
-import com.esotericsoftware.minlog.Log.Logger;
-
 abstract public class KryoNetTestCase extends TestCase {
 	static public String host = "localhost";
 	static public int tcpPort = 54555, udpPort = 54777;
 
-	private ArrayList<Thread> threads = new ArrayList();
-	ArrayList<EndPoint> endPoints = new ArrayList();
+	private ArrayList<Thread> threads = new ArrayList<>();
+	ArrayList<EndPoint> endPoints = new ArrayList<>();
 	private Timer timer;
 	boolean fail;
 

@@ -19,10 +19,10 @@
 
 package com.esotericsoftware.kryonet;
 
-import java.net.DatagramPacket;
-
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
+
+import java.net.DatagramPacket;
 
 public interface ClientDiscoveryHandler {
 
@@ -30,7 +30,7 @@ public interface ClientDiscoveryHandler {
 	 * This implementation of the {@link ClientDiscoveryHandler} is responsible
 	 * for providing the {@link Client} with it's default behavior.
 	 */
-	public static final ClientDiscoveryHandler DEFAULT = new ClientDiscoveryHandler() {
+	ClientDiscoveryHandler DEFAULT = new ClientDiscoveryHandler() {
 
 		@Override
 		public DatagramPacket onRequestNewDatagramPacket() {

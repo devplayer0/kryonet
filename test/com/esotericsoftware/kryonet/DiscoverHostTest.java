@@ -82,7 +82,7 @@ public class DiscoverHostTest extends KryoNetTestCase {
 				packet.playerName = "playerName";
 
 				ByteBuffer buffer = ByteBuffer.allocate(256);
-				serialization.write(null, buffer, packet);
+				serialization.write(buffer, packet);
 				buffer.flip();
 
 				datagramChannel.send(buffer, fromAddress);

@@ -14,10 +14,15 @@ import java.util.concurrent.TimeUnit;
 import static com.esotericsoftware.minlog.Log.*;
 
 /**
+ * This class is the abstract class version of Listener, similar to the
+ * relationship between MouseListener and MouseAdapter, for example.
+ *
+ * This class allows you to implement the only the methods you need and leave
+ * the rest as nops.
+ *
  * Created by Evan on 6/9/16.
  */
-
-public class ConnectionAdapter<T extends Connection> implements Listener<T> {
+public abstract class ConnectionAdapter<T extends Connection> implements Listener<T> {
 
     @Override
     public void connected(T connection) {

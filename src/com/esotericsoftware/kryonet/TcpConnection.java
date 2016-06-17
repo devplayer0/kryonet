@@ -116,7 +116,7 @@ class TcpConnection {
 		}
 	}
 
-	public Object readObject (Connection connection) throws IOException {
+	public Object readObject() throws IOException {
 		SocketChannel socketChannel = this.socketChannel;
 		if (socketChannel == null) throw new SocketException("Connection is closed.");
 
@@ -157,7 +157,7 @@ class TcpConnection {
 		readBuffer.limit(startPosition + length);
 		Object object;
 		try {
-			object = serialization.read(connection, readBuffer);
+			object = serialization.read(readBuffer);
 		} catch (Exception ex) {
 			throw new KryoNetException("Error during deserialization.", ex);
 		}
@@ -210,7 +210,7 @@ class TcpConnection {
 
 			// Write data.
 			try {
-				serialization.write(connection, writeBuffer, object);
+				serialization.write(writeBuffer, object);
 			} catch (KryoNetException ex) {
 				throw new KryoNetException("Error serializing object of type: " + object.getClass().getName(), ex);
 			}
@@ -242,6 +242,75 @@ class TcpConnection {
 			return end - start;
 		}
 	}
+
+
+
+
+
+
+
+
+	/** This method is thread safe. */
+	public int sendRaw (ByteBuffer raw) throws IOException {
+		SocketChannel socketChannel = this.socketChannel;
+		if (socketChannel == null) throw new SocketException("Connection is closed.");
+		synchronized (writeLock) {
+			// Leave room for length.
+			int start = writeBuffer.position();
+			int lengthLength = serialization.getLengthLength();
+			writeBuffer.position(writeBuffer.position() + lengthLength);
+
+			// Write data.
+			try {
+				writeBuffer.put(raw);
+			} catch (KryoNetException ex) {
+				throw new KryoNetException("Error serializing broadcast message", ex);
+			}
+			int end = writeBuffer.position();
+
+			// Write data length.
+			writeBuffer.position(start);
+			serialization.writeLength(writeBuffer, end - lengthLength - start);
+			writeBuffer.position(end);
+
+			// Write to socket if no data was queued.
+			if (start == 0 && !writeToSocket()) {
+				// A partial write, set OP_WRITE to be notified when more writing can occur.
+				selectionKey.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+			} else {
+				// Full write, wake up selector so idle event will be fired.
+				selectionKey.selector().wakeup();
+			}
+
+			if (DEBUG || TRACE) {
+				float percentage = writeBuffer.position() / (float)writeBuffer.capacity();
+				if (DEBUG && percentage > 0.75f)
+					debug("kryonet", "TCP write buffer is approaching capacity: " + percentage + "%");
+				else if (TRACE && percentage > 0.25f)
+					trace("kryonet", "TCP write buffer utilization: " + percentage + "%");
+			}
+
+			lastWriteTime = System.currentTimeMillis();
+			return end - start;
+		}
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	public void close () {
 		try {

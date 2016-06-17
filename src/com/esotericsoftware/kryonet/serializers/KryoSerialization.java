@@ -22,12 +22,7 @@ package com.esotericsoftware.kryonet.serializers;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.ByteBufferInput;
 import com.esotericsoftware.kryo.io.ByteBufferOutput;
-import com.esotericsoftware.kryonet.Connection;
-import com.esotericsoftware.kryonet.FrameworkMessage.DiscoverHost;
-import com.esotericsoftware.kryonet.FrameworkMessage.KeepAlive;
-import com.esotericsoftware.kryonet.FrameworkMessage.Ping;
-import com.esotericsoftware.kryonet.FrameworkMessage.RegisterTCP;
-import com.esotericsoftware.kryonet.FrameworkMessage.RegisterUDP;
+import com.esotericsoftware.kryonet.FrameworkMessage.*;
 
 import java.nio.ByteBuffer;
 
@@ -59,27 +54,31 @@ public class KryoSerialization implements Serialization {
 		return kryo;
 	}
 
-	public synchronized void write (Connection connection, ByteBuffer buffer, Object object) {
+
+	@Override
+	public synchronized void write (ByteBuffer buffer, Object object) {
 		output.setBuffer(buffer);
-		kryo.getContext().put("connection", connection);
 		kryo.writeClassAndObject(output, object);
 		output.flush();
 	}
 
-	public synchronized Object read (Connection connection, ByteBuffer buffer) {
+	@Override
+	public synchronized Object read (ByteBuffer buffer) {
 		input.setBuffer(buffer);
-		kryo.getContext().put("connection", connection);
 		return kryo.readClassAndObject(input);
 	}
 
+	@Override
 	public void writeLength (ByteBuffer buffer, int length) {
 		buffer.putInt(length);
 	}
 
+	@Override
 	public int readLength (ByteBuffer buffer) {
 		return buffer.getInt();
 	}
 
+	@Override
 	public int getLengthLength () {
 		return 4;
 	}

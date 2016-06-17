@@ -19,9 +19,9 @@
 
 package com.esotericsoftware.kryonet.util;
 
-import java.util.Random;
-
 import com.esotericsoftware.kryo.util.ObjectMap;
+
+import java.util.concurrent.ThreadLocalRandom;
 
 /** An unordered map where the values are ints. This implementation is a cuckoo hash map using 3 hashes, random walking, and a
  * small stash for problematic keys. Null keys are not allowed. No allocation is done except when growing the table size. <br>
@@ -34,8 +34,6 @@ public class ObjectIntMap<K> {
 	private static final int PRIME1 = 0xbe1f14b1;
 	private static final int PRIME2 = 0xb4b82e39;
 	private static final int PRIME3 = 0xced1c241;
-
-	static Random random = new Random();
 
 	public int size;
 
@@ -194,7 +192,7 @@ public class ObjectIntMap<K> {
 		int i = 0, pushIterations = this.pushIterations;
 		do {
 			// Replace the key and value for one of the hashes.
-			switch (random.nextInt(3)) {
+			switch (ThreadLocalRandom.current().nextInt(3)) {
 			case 0:
 				evictedKey = key1;
 				evictedValue = valueTable[index1];

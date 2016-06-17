@@ -23,7 +23,6 @@ import com.esotericsoftware.jsonbeans.Json;
 import com.esotericsoftware.jsonbeans.JsonException;
 import com.esotericsoftware.kryo.io.ByteBufferInputStream;
 import com.esotericsoftware.kryo.io.ByteBufferOutputStream;
-import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.FrameworkMessage.*;
 
 import java.io.OutputStreamWriter;
@@ -47,52 +46,73 @@ public class JsonSerialization implements Serialization {
 		json.addClassTag("DiscoverHost", DiscoverHost.class);
 		json.addClassTag("Ping", Ping.class);
 
+
+
 		json.setWriter(writer);
 	}
+
 
 	public void setLogging (boolean logging, boolean prettyPrint) {
 		this.logging = logging;
 		this.prettyPrint = prettyPrint;
 	}
 
-	public void write (Connection connection, ByteBuffer buffer, Object object) {
+	@Override
+	public void write (ByteBuffer buffer, Object object) {
 		byteBufferOutputStream.setByteBuffer(buffer);
-		int start = buffer.position();
 		try {
-			json.writeValue(object, Object.class, null);
+			final int start = buffer.position();
+			System.out.println("Writing object: " + object);
+			json.writeValue(object, null, null);
 			writer.flush();
+
+
+
+			if (INFO && logging) {
+				final int end = buffer.position();
+				buffer.position(start);
+				buffer.limit(end);
+				int length = end - start;
+				if (logBuffer.length < length)
+					logBuffer = new byte[length];
+				buffer.get(logBuffer, 0, length);
+				buffer.position(end);
+				buffer.limit(buffer.capacity());
+				String message = new String(logBuffer, 0, length);
+
+				info("Initial: " + message);
+				if (prettyPrint)
+					message = json.prettyPrint(message);
+				info("Wrote: " + message);
+			}
+
 		} catch (Exception ex) {
 			throw new JsonException("Error writing object: " + object, ex);
 		}
-		if (INFO && logging) {
-			int end = buffer.position();
-			buffer.position(start);
-			buffer.limit(end);
-			int length = end - start;
-			if (logBuffer.length < length) logBuffer = new byte[length];
-			buffer.get(logBuffer, 0, length);
-			buffer.position(end);
-			buffer.limit(buffer.capacity());
-			String message = new String(logBuffer, 0, length);
-			if (prettyPrint) message = json.prettyPrint(message);
-			info("Wrote: " + message);
-		}
 	}
 
-	public Object read (Connection connection, ByteBuffer buffer) {
+	@Override
+	public Object read (ByteBuffer buffer) {
 		byteBufferInputStream.setByteBuffer(buffer);
 		return json.fromJson(Object.class, byteBufferInputStream);
 	}
 
+	@Override
 	public void writeLength (ByteBuffer buffer, int length) {
 		buffer.putInt(length);
 	}
 
+	@Override
 	public int readLength (ByteBuffer buffer) {
 		return buffer.getInt();
 	}
 
+	@Override
 	public int getLengthLength () {
 		return 4;
+	}
+
+	public <T> void addClassTag(String tag, Class<T> dataClass) {
+		json.addClassTag(tag, dataClass);
 	}
 }

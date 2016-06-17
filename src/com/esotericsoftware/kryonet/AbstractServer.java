@@ -31,6 +31,7 @@ import com.esotericsoftware.kryonet.util.KryoNetException;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.Collections;
 import java.util.Iterator;
@@ -235,7 +236,7 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 							if ((ops & SelectionKey.OP_READ) == SelectionKey.OP_READ) {
 								try {
 									while (true) {
-										Object object = fromConnection.tcp.readObject(fromConnection);
+										Object object = fromConnection.tcp.readObject();
 										if (object == null) break;
 										if (DEBUG) {
 											String objectString = object == null ? "null" : object.getClass().getSimpleName();
@@ -311,7 +312,7 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 
 						Object object;
 						try {
-							object = udp.readObject(fromConnection);
+							object = udp.readObject();
 						} catch (KryoNetException ex) {
 							if (WARN) {
 								if (fromConnection != null) {
@@ -468,51 +469,62 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 
 	// BOZO - Provide mechanism for sending to multiple clients without serializing multiple times.
 
+	public void sendToAllTCP(Object object, Iterable<T> targets){
+		final ByteBuffer raw = ByteBuffer.allocate(writeBufferSize);
+		serialization.write(raw, object);
+
+
+		for(T target: targets){
+			target.sendBytesTCP(raw);
+		}
+	}
+
+
+	public void sendToAllUDP(Object object, Iterable<T> targets){
+		final ByteBuffer raw = ByteBuffer.allocate(writeBufferSize);
+		serialization.write(raw, object);
+
+		for(T target: targets){
+			target.sendBytesUDP(raw);
+		}
+	}
+
+
+
+
 	public void sendToAllTCP (Object object) {
-		final List<T> connections = this.connections;
-		for (T connection: connections) {
-			connection.sendTCP(object);
-		}
+		sendToAllTCP(object, this.connections);
 	}
 
-	public void sendToAllExceptTCP (int connectionID, Object object) {
-		final List<T> connections = this.connections;
-		for (T connection: connections) {
-			if (connection.id != connectionID) connection.sendTCP(object);
-		}
-	}
-
-	public void sendToTCP (int connectionID, Object object) {
-		final List<T> connections = this.connections;
-		for (T connection: connections) {
-			if (connection.id == connectionID) {
-				connection.sendTCP(object);
-				break;
-			}
-		}
-	}
 
 	public void sendToAllUDP (Object object) {
+		sendToAllUDP(object, this.connections);
+	}
+
+
+
+
+	public void sendToAllExceptTCP (int connectionID, Object object) {
+		final ByteBuffer raw = ByteBuffer.allocate(writeBufferSize);
+		serialization.write(raw, object);
+
 		final List<T> connections = this.connections;
-		for (T connection: connections) {
-			connection.sendUDP(object);
+		for(T target: connections){
+			if(target.getID() != connectionID)
+				target.sendBytesTCP(raw);
 		}
 	}
+
+
 
 	public void sendToAllExceptUDP (int connectionID, Object object) {
-		final List<T> connections = this.connections;
-		for (T connection: connections) {
-			if (connection.id != connectionID) connection.sendUDP(object);
-		}
-	}
+		final ByteBuffer raw = ByteBuffer.allocate(writeBufferSize);
+		serialization.write(raw, object);
 
-	public void sendToUDP (int connectionID, Object object) {
 		final List<T> connections = this.connections;
-		for (T connection: connections) {
-			if (connection.id == connectionID) {
-				connection.sendUDP(object);
-				break;
-			}
+		for(T target: connections){
+			if(target.getID() != connectionID)
+				target.sendBytesTCP(raw);
 		}
 	}
 

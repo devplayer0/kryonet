@@ -30,6 +30,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -84,6 +85,16 @@ public class Connection {
       return lastProtocolError;
    }
 
+
+	void sendBytesTCP(ByteBuffer raw){
+
+	}
+
+	void sendBytesUDP(ByteBuffer raw){
+
+	}
+
+
 	/** Sends the object over the network using TCP.
 	 * @return The number of bytes sent.
 	 * @see Kryo#register(Class, com.esotericsoftware.kryo.Serializer) */
@@ -126,7 +137,7 @@ public class Connection {
 		try {
 			if (address == null) throw new SocketException("Connection is closed.");
 
-			int length = udp.send(this, object, address);
+			int length = udp.send(object, address);
 			if (length == 0) {
 				if (TRACE) trace("kryonet", this + " UDP had nothing to send.");
 			} else if (DEBUG) {
