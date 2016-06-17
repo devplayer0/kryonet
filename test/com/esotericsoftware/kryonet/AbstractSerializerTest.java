@@ -33,7 +33,7 @@ public abstract class AbstractSerializerTest<T extends Serialization> extends Kr
 	protected AbstractSerializerTest(T serial){
 		this.serializer = serial;
 		register();
-		Log.TRACE();
+		Log.WARN();
 	}
 
 
@@ -119,7 +119,7 @@ public abstract class AbstractSerializerTest<T extends Serialization> extends Kr
 
 		client.connect(5000, host, tcpPort, udpPort);
 
-		waitForThreads(5000);
+		waitForThreads(7500);
 
 		if (fail != null) fail(fail);
 	}
