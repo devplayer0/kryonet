@@ -4,18 +4,18 @@ This project is not backwards-compatible with kryonet, but the following guide e
 
 
 In comparison to KryoNet, this project:  
-- Uses a more efficient sendToAll(msg) where msg is serialized only once.
-- Uses Jackson for json serialization rather than jsonbeans.
-- Adds support for 'queries' -- Messages that expect a reply that wil be handled sychnrounously or asynchronously
-- Requires all message types to implement MessageToServer or MessageToClient
+- Adds support for 'queries' -- Messages that expect a reply that will be handled sychnrounously or asynchronously
 - Supports registering callbacks for message types. O(1) dispatch without instanceof chains.
+- connection.sendToAll(msg) only serializes msg exactly once, rather than once per connection
+- Uses Jackson for json serialization rather than jsonbeans.
+- Requires all message types to implement MessageToServer or MessageToClient
 - Uses ConcurrentUnit for unit tests which catch many failures that are ignored in KryoNet
 - Removes support for RMI
 
 
 Tips:
 - Messages should be sent with connection.send() which delegates to sendTCP or sendUDP depending on the message type
-- Don't rely on instanceOf checks, using RegisteredServerListener and RegisteredClientListener to register callbacks for each message type.
+- Don't rely on instanceOf checks, use RegisteredServerListener and RegisteredClientListener to register callbacks for each message type.
 
 
 
