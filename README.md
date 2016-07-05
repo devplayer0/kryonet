@@ -103,13 +103,14 @@ To define a message type that defaults to UDP:
 	
 	/*Delegate to appropriate handler*/
 	listener.addHandler(MovementMessage.class, (msg, sender) -> movementHandler.handle(msg, sender)); 
-	
+
 	listener.addQueryHandle(LoginQuery.class, (query, con) -> {
-            if(query.username.equals("John Smith") && query.password.equals("1234")) {
-            	query.reply(LoginStatus.SUCCESS);
-            } else {
-				query.reply(LoginStatus.FAILURE);            
-            }
+		//Reply should be called once on each query to send back a result
+        if(query.username.equals("John Smith") && query.password.equals("1234")) {
+        	query.reply(LoginStatus.SUCCESS);
+        } else {
+			query.reply(LoginStatus.FAILURE);            
+        }
     });
     
     server.addListener(listener);
