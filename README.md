@@ -13,12 +13,18 @@ In comparison to KryoNet, this project:
 - Removes support for RMI
 
 
+Tips:
+- Messages should be sent with connection.send() which delegates to sendTCP or sendUDP depending on the message type
+- Don't rely on instanceOf checks, using RegisteredServerListener and RegisteredClientListener to register callbacks for each message type.
+
+
+
 Examples:
 
 - [Creating a Server and Client](#creating-a-server-and-client)
 - [Defining a message Type](#defining-a-message-type)
+- [Registering Callbacks](#registering-callbacks)
 - [Using Queries](#queries)
-
 
 
 
@@ -85,17 +91,32 @@ To define a message type that defaults to UDP:
     	
     	@Override
     	public boolean isReliable(){
-    		return false; // False messages of this type should be sent over UDP
+    		return false; // False indicates that messages of this type should be sent over UDP
     	}
     }
 ```
 
 
+##Registering Callbacks
+```java
+	RegisteredServerListener listener = new RegisteredServerListener();
+	
+	/*Delegate to appropriate handler*/
+	listener.addHandler(MovementMessage.class, (msg, sender) -> movementHandler.handle(msg, sender)); 
+	
+	listener.addQueryHandle(LoginQuery.class, (query, con) -> {
+            if(query.username.equals("John Smith") && query.password.equals("1234")) {
+            	query.reply(LoginStatus.SUCCESS);
+            } else {
+				query.reply(LoginStatus.FAILURE);            
+            }
+    });
+
+```
 
 
 
-
-## Queries
+##Queries
 Let's say that you're developing a turn-based strategy game.
 In your game client, you probably have code that involves logging into your game server, since every request will require a response, it may be appropriate to create a LoginQuery class that extends QueryToServer<T>.
 
