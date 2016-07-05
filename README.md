@@ -118,8 +118,11 @@ To define a message type that defaults to UDP:
 
 
 ##Queries
+Queries are types of messages that are intended to invoke a reply from the other endpoint. Queries and their results are always sent over TCP. You can define a query that, for example, returns a type T by extending QueryToServer<T> or QueryToClient<T>
+
+
 Let's say that you're developing a turn-based strategy game.
-In your game client, you probably have code that involves logging into your game server, since every request will require a response, it may be appropriate to create a LoginQuery class that extends QueryToServer<T>.
+In your game client, you probably have code that involves logging into your game server, since every request of this type will require a response, it may be appropriate to create a LoginQuery class that extends QueryToServer<T>.
 
 Doing so produces code that is really easy to reason about. Additionally, there is no need for a dependency between your packet listener and your login logic
 ```java
@@ -145,5 +148,8 @@ Queries can also be handled asynchronously with callbacks. Let's say our player 
     
 ```
 
-
-
+Queries are defined very much like normal messages. For example, we can define RequestSelection very simply as
+```java
+	public class RequestSelection extends QueryToClient<Selection> { 
+	}
+```
