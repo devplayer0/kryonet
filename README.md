@@ -48,7 +48,7 @@ a static factory method.
 
 ## Defining a message type;
 - Messages should implement either MessageToServer, MessageToClient, or both.
-- All messages have an isReliable method that indicates whether they should be send over TCP or UDP by default. The intent is that you first design your game using TCP for everything, and then optimize later by selecting messages types that can be send over UDP by just overriding this method.
+- All messages have an isReliable method that indicates whether they should be sent over TCP or UDP by default. The intent is that you first design your game using TCP for everything, and then optimize later by selecting messages types that can be send over UDP by just overriding this method.
 
 ```java
 	/** This message indicates that the client has requested their player to move once in a particular direction.
@@ -119,7 +119,7 @@ To define a message type that defaults to UDP:
 
 
 ##Queries
-Queries are types of messages that are intended to invoke a reply from the other endpoint. Queries and their results are always sent over TCP. You can define a query that, for example, returns a type T by extending QueryToServer<T> or QueryToClient<T>
+Queries are types of messages that are intended to invoke a reply from the other endpoint. Queries and their results are always sent over TCP. You can define a query that returns a type T by extending QueryToServer<T> or QueryToClient<T>
 
 
 Let's say that you're developing a turn-based strategy game.
