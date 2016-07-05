@@ -31,7 +31,7 @@ Examples:
 
 
 ## Creating a Server and Client
-Getting started is very similar to KryoNet, expect the client has a type parameter and is usually creating with
+Getting started is very similar to KryoNet, except the client has a type parameter and is usually creating with
 a static factory method.
 ```java
 	Server server = new Server(); // Just like kryonet
