@@ -111,7 +111,8 @@ To define a message type that defaults to UDP:
 				query.reply(LoginStatus.FAILURE);            
             }
     });
-
+    
+    server.addListener(listener);
 ```
 
 
