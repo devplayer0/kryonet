@@ -6,7 +6,7 @@ This project is not backwards-compatible with kryonet, but the following guide e
 In comparison to KryoNet, this project:  
 - Adds support for 'queries' -- Messages that expect a reply that will be handled sychnrounously or asynchronously
 - Supports registering callbacks for message types. O(1) dispatch without instanceof chains.
-- connection.sendToAll(msg) only serializes msg exactly once, rather than once per connection
+- connection.sendToAll(msg) serializes msg exactly once, rather than once per connection
 - Uses Jackson for json serialization rather than jsonbeans.
 - Requires all message types to implement MessageToServer or MessageToClient
 - Uses ConcurrentUnit for unit tests which catch many failures that are ignored in KryoNet
