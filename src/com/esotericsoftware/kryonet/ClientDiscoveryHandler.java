@@ -30,6 +30,7 @@ public interface ClientDiscoveryHandler {
 	 * This implementation of the {@link ClientDiscoveryHandler} is responsible
 	 * for providing the {@link Client} with it's default behavior.
 	 */
+
 	ClientDiscoveryHandler DEFAULT = new ClientDiscoveryHandler() {
 
 		@Override

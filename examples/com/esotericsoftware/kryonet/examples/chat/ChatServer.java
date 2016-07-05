@@ -40,7 +40,7 @@ public class ChatServer {
 
 				if (object instanceof RegisterName) {
 					// Ignore the object if a client has already registered a name. This is
-					// impossible with our client, but a hacker could send messages at any time.
+					// impossible with our client, but a hacker could sendRaw messages at any time.
 					if (connection.name != null) return;
 					// Ignore the object if the name is invalid.
 					String name = ((RegisterName)object).name;
@@ -49,9 +49,9 @@ public class ChatServer {
 					if (name.length() == 0) return;
 					// Store the name on the connection.
 					connection.name = name;
-					// Send a "connected" message to everyone except the new client.
+					// Send a "onConnected" message to everyone except the new client.
 					ChatMessage chatMessage = new ChatMessage();
-					chatMessage.text = name + " connected.";
+					chatMessage.text = name + " onConnected.";
 					server.sendToAllExceptTCP(connection.getID(), chatMessage);
 					// Send everyone a new list of connection names.
 					updateNames();
@@ -67,7 +67,7 @@ public class ChatServer {
 					if (message == null) return;
 					message = message.trim();
 					if (message.length() == 0) return;
-					// Prepend the connection's name and send to everyone.
+					// Prepend the connection's name and sendRaw to everyone.
 					chatMessage.text = connection.name + ": " + message;
 					server.sendToAllTCP(chatMessage);
 					return;
@@ -79,7 +79,7 @@ public class ChatServer {
 				if (connection.name != null) {
 					// Announce to everyone that someone (with a registered name) has left.
 					ChatMessage chatMessage = new ChatMessage();
-					chatMessage.text = connection.name + " disconnected.";
+					chatMessage.text = connection.name + " onDisconnected.";
 					server.sendToAllTCP(chatMessage);
 					updateNames();
 				}

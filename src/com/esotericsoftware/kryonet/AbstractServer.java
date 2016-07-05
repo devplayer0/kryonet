@@ -21,10 +21,11 @@ package com.esotericsoftware.kryonet;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.util.IntMap;
-import com.esotericsoftware.kryonet.FrameworkMessage.DiscoverHost;
-import com.esotericsoftware.kryonet.FrameworkMessage.RegisterTCP;
-import com.esotericsoftware.kryonet.FrameworkMessage.RegisterUDP;
-import com.esotericsoftware.kryonet.adapters.Listener;
+import com.esotericsoftware.kryonet.messages.FrameworkMessage;
+import com.esotericsoftware.kryonet.messages.FrameworkMessage.RegisterTCP;
+import com.esotericsoftware.kryonet.messages.MessageToClient;
+import com.esotericsoftware.kryonet.messages.QueryToClient;
+import com.esotericsoftware.kryonet.messages.QueryToServer;
 import com.esotericsoftware.kryonet.serializers.KryoSerialization;
 import com.esotericsoftware.kryonet.serializers.Serialization;
 import com.esotericsoftware.kryonet.util.KryoNetException;
@@ -42,65 +43,62 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import static com.esotericsoftware.minlog.Log.*;
 
 /** Manages TCP and optionally UDP connections from many {@link Client Clients}.
- * @author Nathan Sweet <misc@n4te.com> */
-public abstract class AbstractServer<T extends Connection> implements EndPoint<T> {
+ * @author Nathan Sweet <misc@n4te.com>
+ * @author Evan Darke <evancdarke@gmail.com>*/
+public abstract class AbstractServer<T extends ClientConnection> extends EndPoint<MessageToClient, T> {
 	public static final int DEFAULT_WRITE_BUFFER = 16384, DEFAULT_OBJ_BUFFER = 2048;
+
+
 
 
 	private final Serialization serialization;
 	private final int writeBufferSize, objectBufferSize;
-	private final Selector selector;
-	private int emptySelects;
 	private ServerSocketChannel serverChannel;
 	private UdpConnection udp;
 
 	private final IntMap<T> pendingConnections = new IntMap<>();
-	private final List<Listener<? super T>> listeners = new CopyOnWriteArrayList<>();
 	private final List<T> connections = new CopyOnWriteArrayList<>();
 
 	private int nextConnectionID = 1;
 	private volatile boolean shutdown;
-	private final Object updateLock = new Object();
-	private Thread updateThread;
 	private ServerDiscoveryHandler discoveryHandler;
 
 	private final Class<T> classTag;
 
 	private final Listener<Connection> dispatchListener = new Listener<Connection>() {
 
-		public void connected (Connection conn) {
+		public void onConnected(Connection conn) {
+			conn.notifyConnected();
+
 			final T connection = classTag.cast(conn);
 			final List<Listener<? super T>> listeners = AbstractServer.this.listeners;
 
 			for(Listener<? super T> listener : listeners)
-				listener.connected(connection);
+				listener.onConnected(connection);
 		}
 
-		public void disconnected (Connection conn) {
+		public void onDisconnected(Connection conn) {
 			final T connection = classTag.cast(conn);
 			removeConnection(connection);
 
 			final List<Listener<? super T>> listeners = AbstractServer.this.listeners;
 
 			for(Listener<? super T> listener : listeners)
-				listener.disconnected(connection);
+				listener.onDisconnected(connection);
 		}
 
-		public void received (Connection conn, Object object) {
-			final T connection = classTag.cast(conn);
-			final List<Listener<? super T>> listeners = AbstractServer.this.listeners;
-
-			for(Listener<? super T> listener : listeners)
-				listener.received(connection, object);
+		public void received(Connection conn, Object object){
+			throw new UnsupportedOperationException();
 		}
 
-		public void idle (Connection conn) {
+
+		public void onIdle(Connection conn) {
 			final T connection = classTag.cast(conn);
 			final List<Listener<? super T>> listeners = AbstractServer.this.listeners;
 
 
 			for(Listener<? super T> listener : listeners){
-				listener.idle(connection);
+				listener.onIdle(connection);
 				if (!connection.isIdle()) break;
 			}
 		}
@@ -111,7 +109,7 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 		this(tag, DEFAULT_WRITE_BUFFER, DEFAULT_OBJ_BUFFER);
 	}
 
-	/** @param writeBufferSize One buffer of this size is allocated for each connected client. Objects are serialized to the write
+	/** @param writeBufferSize One buffer of this size is allocated for each onConnected client. Objects are serialized to the write
 	 *           buffer where the bytes are queued until they can be written to the TCP socket.
 	 *           <p>
 	 *           Normally the socket is writable and the bytes are written immediately. If the socket cannot be written to and
@@ -177,56 +175,43 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 				serverChannel.socket().bind(tcpPort);
 				serverChannel.configureBlocking(false);
 				serverChannel.register(selector, SelectionKey.OP_ACCEPT);
-				if (DEBUG) debug("kryonet", "Accepting connections on port: " + tcpPort + "/TCP");
+				if (DEBUG) debug(TAG, "Accepting connections on port: " + tcpPort + "/TCP");
 
 				if (udpPort != null) {
 					udp = new UdpConnection(serialization, objectBufferSize);
 					udp.bind(selector, udpPort);
-					if (DEBUG) debug("kryonet", "Accepting connections on port: " + udpPort + "/UDP");
+					if (DEBUG) debug(TAG, "Accepting connections on port: " + udpPort + "/UDP");
 				}
 			} catch (IOException ex) {
 				close();
 				throw ex;
 			}
 		}
-		if (INFO) info("kryonet", "Server opened.");
+		if (INFO) info(TAG, "Server opened.");
 	}
+
+
+
+
+
+
 
 	/** Accepts any new connections and reads or writes any pending data for the current connections.
 	 * @param timeout Wait for up to the specified milliseconds for a connection to be ready to process. May be zero to return
 	 *           immediately if there are no connections to process. */
 	public void update (int timeout) throws IOException {
-		updateThread = Thread.currentThread();
-		synchronized (updateLock) { // Blocks to avoid a select while the selector is used to bind the server connection.
-		}
-		long startTime = System.currentTimeMillis();
-
-		final int select = (timeout > 0) ? selector.select(timeout) : selector.selectNow() ;
-
-		if (select == 0) {
-			++emptySelects;
-			if (emptySelects == 100) {
-				emptySelects = 0;
-				// NIO freaks and returns immediately with 0 sometimes, so try to keep from hogging the CPU.
-				long elapsedTime = System.currentTimeMillis() - startTime;
-				try {
-					if (elapsedTime < 25) Thread.sleep(25 - elapsedTime);
-				} catch (InterruptedException ex) {
-				}
-			}
-		} else {
+		if(isSelectReady(timeout)) {
 			emptySelects = 0;
 			Set<SelectionKey> keys = selector.selectedKeys();
 			synchronized (keys) {
 				UdpConnection udp = this.udp;
-				outer:
-				for (Iterator<SelectionKey> iter = keys.iterator(); iter.hasNext();) {
+				for (Iterator<SelectionKey> iter = keys.iterator(); iter.hasNext(); ) {
 					keepAlive();
 					SelectionKey selectionKey = iter.next();
 					iter.remove();
-					Connection fromConnection = (Connection)selectionKey.attachment();
+					T fromConnection = classTag.cast(selectionKey.attachment());
 					try {
-						int ops = selectionKey.readyOps();
+						final int ops = selectionKey.readyOps();
 
 						if (fromConnection != null) { // Must be a TCP read or write operation.
 							if (udp != null && fromConnection.udpRemoteAddress == null) {
@@ -238,25 +223,17 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 									while (true) {
 										Object object = fromConnection.tcp.readObject();
 										if (object == null) break;
-										if (DEBUG) {
-											String objectString = object == null ? "null" : object.getClass().getSimpleName();
-											if (!(object instanceof FrameworkMessage)) {
-												debug("kryonet", fromConnection + " received TCP: " + objectString);
-											} else if (TRACE) {
-												trace("kryonet", fromConnection + " received TCP: " + objectString);
-											}
-										}
-										fromConnection.notifyReceived(object);
+										handleTCP(object, fromConnection);
 									}
 								} catch (IOException ex) {
 									if (TRACE) {
-										trace("kryonet", "Unable to read TCP from: " + fromConnection, ex);
+										trace(TAG, "Unable to read TCP from: " + fromConnection, ex);
 									} else if (DEBUG) {
-										debug("kryonet", fromConnection + " update: " + ex.getMessage());
+										debug(TAG, fromConnection + " update: " + ex.getMessage());
 									}
 									fromConnection.close();
 								} catch (KryoNetException ex) {
-									if (ERROR) error("kryonet", "Error reading TCP from connection: " + fromConnection, ex);
+									if (ERROR) error(TAG, "Error reading TCP from connection: " + fromConnection, ex);
 									fromConnection.close();
 								}
 							}
@@ -265,9 +242,9 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 									fromConnection.tcp.writeOperation();
 								} catch (IOException ex) {
 									if (TRACE) {
-										trace("kryonet", "Unable to write TCP to connection: " + fromConnection, ex);
+										trace(TAG, "Unable to write TCP to connection: " + fromConnection, ex);
 									} else if (DEBUG) {
-										debug("kryonet", fromConnection + " update: " + ex.getMessage());
+										debug(TAG, fromConnection + " update: " + ex.getMessage());
 									}
 									fromConnection.close();
 								}
@@ -282,7 +259,7 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 								SocketChannel socketChannel = serverChannel.accept();
 								if (socketChannel != null) acceptOperation(socketChannel);
 							} catch (IOException ex) {
-								if (DEBUG) debug("kryonet", "Unable to accept new connection.", ex);
+								if (DEBUG) debug(TAG, "Unable to accept new connection.", ex);
 							}
 							continue;
 						}
@@ -296,14 +273,13 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 						try {
 							fromAddress = udp.readFromAddress();
 						} catch (IOException ex) {
-							if (WARN) warn("kryonet", "Error reading UDP data.", ex);
+							if (WARN) warn(TAG, "Error reading UDP data.", ex);
 							continue;
 						}
 						if (fromAddress == null) continue;
 
-						final List<T> connections = this.connections;
-						for (int i = 0, n = connections.size(); i < n; i++) {
-							Connection connection = connections.get(i);
+						List<T> connections = this.connections;
+						for (T connection : connections) {
 							if (fromAddress.equals(connection.udpRemoteAddress)) {
 								fromConnection = connection;
 								break;
@@ -316,57 +292,13 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 						} catch (KryoNetException ex) {
 							if (WARN) {
 								if (fromConnection != null) {
-									if (ERROR) error("kryonet", "Error reading UDP from connection: " + fromConnection, ex);
+									if (ERROR) error(TAG, "Error reading UDP from connection: " + fromConnection, ex);
 								} else
-									warn("kryonet", "Error reading UDP from unregistered address: " + fromAddress, ex);
+									warn(TAG, "Error reading UDP from unregistered address: " + fromAddress, ex);
 							}
 							continue;
 						}
-
-						if (object instanceof FrameworkMessage) {
-							if (object instanceof RegisterUDP) {
-								// Store the fromAddress on the connection and reply over TCP with a RegisterUDP to indicate success.
-								int fromConnectionID = ((RegisterUDP)object).connectionID;
-								T connection = pendingConnections.remove(fromConnectionID);
-								if (connection != null) {
-									if (connection.udpRemoteAddress != null) continue outer;
-									connection.udpRemoteAddress = fromAddress;
-									addConnection(connection);
-									connection.sendTCP(new RegisterUDP());
-									if (DEBUG)
-										debug("kryonet", "Port " + udp.datagramChannel.socket().getLocalPort() + "/UDP connected to: "
-											+ fromAddress);
-									connection.notifyConnected();
-									continue;
-								}
-								if (DEBUG)
-									debug("kryonet", "Ignoring incoming RegisterUDP with invalid connection ID: " + fromConnectionID);
-								continue;
-							}
-							if (object instanceof DiscoverHost) {
-								try {
-									boolean responseSent = discoveryHandler
-										.onDiscoverHost(udp.datagramChannel, fromAddress, serialization);
-									if (DEBUG && responseSent) debug("kryonet", "Responded to host discovery from: " + fromAddress);
-								} catch (IOException ex) {
-									if (WARN) warn("kryonet", "Error replying to host discovery from: " + fromAddress, ex);
-								}
-								continue;
-							}
-						}
-
-						if (fromConnection != null) {
-							if (DEBUG) {
-								String objectString = object == null ? "null" : object.getClass().getSimpleName();
-								if (object instanceof FrameworkMessage) {
-									if (TRACE) trace("kryonet", fromConnection + " received UDP: " + objectString);
-								} else
-									debug("kryonet", fromConnection + " received UDP: " + objectString);
-							}
-							fromConnection.notifyReceived(object);
-							continue;
-						}
-						if (DEBUG) debug("kryonet", "Ignoring UDP from unregistered address: " + fromAddress);
+						handleUDP(object, fromConnection, fromAddress);
 					} catch (CancelledKeyException ex) {
 						if (fromConnection != null)
 							fromConnection.close();
@@ -377,38 +309,114 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 			}
 		}
 		long time = System.currentTimeMillis();
-		final List<T> connections = this.connections;
-		for (T connection : connections) {
+		List<T> connections = this.connections;
+		for (Connection connection : connections) {
 			if (connection.tcp.isTimedOut(time)) {
-				if (DEBUG) debug("kryonet", connection + " timed out.");
+				if (DEBUG)
+					debug(TAG, connection + " timed out.");
 				connection.close();
 			} else {
-				if (connection.tcp.needsKeepAlive(time)) connection.sendTCP(FrameworkMessage.keepAlive);
+				if (connection.tcp.needsKeepAlive(time)) connection.sendObjectTCP(FrameworkMessage.keepAlive);
 			}
-			if (connection.isIdle()) connection.notifyIdle();
+			if (connection.isIdle()) dispatchListener.onIdle(connection);
 		}
 	}
+
+
+
+	private void handleTCP(Object object, T fromConnection) {
+		if (object instanceof FrameworkMessage) {
+			if (TRACE) {
+				trace(TAG, fromConnection + " received: " + object.getClass().getSimpleName());
+			}
+
+			if (object instanceof FrameworkMessage.Ping) {
+				fromConnection.acceptPing((FrameworkMessage.Ping) object);
+			}
+
+			return;  // Don't expose framework objects to user.
+		}
+
+
+		if (DEBUG) {
+			String objectString = object == null ? "null" : object.getClass().getSimpleName();
+			debug(TAG, fromConnection + " received: " + objectString);
+		}
+
+
+		if (object instanceof QueryToClient) {
+			fromConnection.accept((QueryToClient<?>) object);
+			return;
+		} else if (object instanceof QueryToServer) {
+			((Query) object).setOrigin(fromConnection);
+		}
+
+		final List<Listener<? super T>> listeners = AbstractServer.this.listeners;
+
+		for (Listener<? super T> listener : listeners)
+			listener.received(fromConnection, object);
+
+	}
+
+
+	private void handleUDP(Object object, T fromConnection, InetSocketAddress fromAddress){
+		if (object instanceof FrameworkMessage) {
+			if (object instanceof FrameworkMessage.RegisterUDP) {
+				// Store the fromAddress on the connection and reply over TCP with a RegisterUDP to indicate success.
+				int fromConnectionID = ((FrameworkMessage.RegisterUDP) object).connectionID;
+				T connection = pendingConnections.remove(fromConnectionID);
+				if (connection != null) {
+					if (connection.udpRemoteAddress == null) {
+						connection.udpRemoteAddress = fromAddress;
+						addConnection(connection);
+						connection.sendObjectTCP(new FrameworkMessage.RegisterUDP());
+						if (DEBUG)
+							debug(TAG, "Port " + udp.datagramChannel.socket().getLocalPort() + "/UDP connected to: " + fromAddress);
+						dispatchListener.onConnected(connection);
+					}
+				} else if (DEBUG)
+					debug(TAG, "Ignoring incoming RegisterUDP with invalid connection ID: " + fromConnectionID);
+			} else if (object instanceof FrameworkMessage.DiscoverHost) {
+				try {
+					boolean responseSent = discoveryHandler.onDiscoverHost(udp.datagramChannel, fromAddress, serialization);
+					if (DEBUG && responseSent)
+						debug(TAG, "Responded to host discovery from: " + fromAddress);
+				} catch (IOException ex) {
+					if (WARN) warn(TAG, "Error replying to host discovery from: " + fromAddress, ex);
+				}
+			}
+		} else if (fromConnection != null) {
+			final List<Listener<? super T>> listeners = AbstractServer.this.listeners;
+
+			for (Listener<? super T> listener : listeners)
+				listener.received(fromConnection, object);
+		} else {
+			if (DEBUG) debug(TAG, "Ignoring UDP from unregistered address: " + fromAddress);
+		}
+	}
+
+
 
 	private void keepAlive () {
 		long time = System.currentTimeMillis();
 		final List<T> connections = this.connections;
 		for (T connection : connections) {
-			if (connection.tcp.needsKeepAlive(time)) connection.sendTCP(FrameworkMessage.keepAlive);
+			if (connection.tcp.needsKeepAlive(time)) connection.sendObjectTCP(FrameworkMessage.keepAlive);
 		}
 	}
 
 	public void run () {
-		if (TRACE) trace("kryonet", "Server thread started.");
+		if (TRACE) trace(TAG, "Server thread started.");
 		shutdown = false;
 		while (!shutdown) {
 			try {
 				update(250);
 			} catch (IOException ex) {
-				if (ERROR) error("kryonet", "Error updating server connections.", ex);
+				if (ERROR) error(TAG, "Error updating server connections.", ex);
 				close();
 			}
 		}
-		if (TRACE) trace("kryonet", "Server thread stopped.");
+		if (TRACE) trace(TAG, "Server thread stopped.");
 	}
 
 	public void start () {
@@ -418,7 +426,7 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 	public void stop () {
 		if (shutdown) return;
 		close();
-		if (TRACE) trace("kryonet", "Server thread stopping.");
+		if (TRACE) trace(TAG, "Server thread stopping.");
 		shutdown = true;
 	}
 
@@ -445,12 +453,12 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 
 			RegisterTCP registerConnection = new RegisterTCP();
 			registerConnection.connectionID = id;
-			connection.sendTCP(registerConnection);
+			connection.sendObjectTCP(registerConnection);
 
 			if (udp == null) connection.notifyConnected();
 		} catch (IOException ex) {
 			connection.close();
-			if (DEBUG) debug("kryonet", "Unable to accept TCP connection.", ex);
+			if (DEBUG) debug(TAG, "Unable to accept TCP connection.", ex);
 		}
 	}
 
@@ -469,10 +477,17 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 
 	// BOZO - Provide mechanism for sending to multiple clients without serializing multiple times.
 
-	public void sendToAllTCP(Object object, Iterable<T> targets){
+	private ByteBuffer writeToBuffer(MessageToClient msg){
 		final ByteBuffer raw = ByteBuffer.allocate(writeBufferSize);
-		serialization.write(raw, object);
+		ByteBuffer.allocate(writeBufferSize);
+		serialization.write(raw, msg);
+		raw.flip();
+		return raw;
+	}
 
+
+	public void sendToAllTCP(MessageToClient object, Iterable<T> targets){
+		final ByteBuffer raw = writeToBuffer(object);
 
 		for(T target: targets){
 			target.sendBytesTCP(raw);
@@ -480,9 +495,9 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 	}
 
 
-	public void sendToAllUDP(Object object, Iterable<T> targets){
-		final ByteBuffer raw = ByteBuffer.allocate(writeBufferSize);
-		serialization.write(raw, object);
+	public void sendToAllUDP(MessageToClient object, Iterable<T> targets){
+		final ByteBuffer raw = writeToBuffer(object);
+
 
 		for(T target: targets){
 			target.sendBytesUDP(raw);
@@ -492,21 +507,20 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 
 
 
-	public void sendToAllTCP (Object object) {
+	public void sendToAllTCP (MessageToClient object) {
 		sendToAllTCP(object, this.connections);
 	}
 
 
-	public void sendToAllUDP (Object object) {
+	public void sendToAllUDP (MessageToClient object) {
 		sendToAllUDP(object, this.connections);
 	}
 
 
 
 
-	public void sendToAllExceptTCP (int connectionID, Object object) {
-		final ByteBuffer raw = ByteBuffer.allocate(writeBufferSize);
-		serialization.write(raw, object);
+	public void sendToAllExceptTCP (int connectionID, MessageToClient object) {
+		final ByteBuffer raw = writeToBuffer(object);
 
 		final List<T> connections = this.connections;
 		for(T target: connections){
@@ -517,9 +531,9 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 
 
 
-	public void sendToAllExceptUDP (int connectionID, Object object) {
-		final ByteBuffer raw = ByteBuffer.allocate(writeBufferSize);
-		serialization.write(raw, object);
+	public void sendToAllExceptUDP (int connectionID, MessageToClient object) {
+		final ByteBuffer raw = writeToBuffer(object);
+
 
 		final List<T> connections = this.connections;
 		for(T target: connections){
@@ -528,24 +542,12 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 		}
 	}
 
-	@Override
-	public void addListener (Listener<? super T> listener) {
-		if (listener == null) throw new IllegalArgumentException("listener cannot be null.");
-		listeners.add(listener);
-		if (TRACE) trace("kryonet", "Server listener added: " + listener.getClass().getName());
-	}
 
-	@Override
-	public void removeListener (Listener<? super T> listener) {
-		if (listener == null) throw new IllegalArgumentException("listener cannot be null.");
-		listeners.remove(listener);
-		if (TRACE) trace("kryonet", "Server listener removed: " + listener.getClass().getName());
-	}
 
 	/** Closes all open connections and the server port(s). */
 	public void close () {
 		List<T> connections = this.connections;
-		if (INFO && connections.size() > 0) info("kryonet", "Closing server connections...");
+		if (INFO && connections.size() > 0) info(TAG, "Closing server connections...");
 		for(T t : connections)
 			t.close();
 		connections.clear();
@@ -554,9 +556,9 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 		if (serverChannel != null) {
 			try {
 				serverChannel.close();
-				if (INFO) info("kryonet", "Server closed.");
+				if (INFO) info(TAG, "Server closed.");
 			} catch (IOException ex) {
-				if (DEBUG) debug("kryonet", "Unable to close server.", ex);
+				if (DEBUG) debug(TAG, "Unable to close server.", ex);
 			}
 			this.serverChannel = null;
 		}
@@ -577,18 +579,23 @@ public abstract class AbstractServer<T extends Connection> implements EndPoint<T
 		}
 	}
 
-	/** Releases the resources used by this server, which may no longer be used. */
-	public void dispose () throws IOException {
-		close();
-		selector.close();
-	}
 
-	public Thread getUpdateThread () {
-		return updateThread;
-	}
 
-	/** Returns the current connections. The array returned should not be modified. */
+	/** Returns an unmodifiable view of active connections. As clients connect and
+	 * disconnect, the view will be updated, but attempting to modify it directly will
+	 * result in an exception.
+	 *
+	 * Its safe to call this method once the server is create and maintain a reference to it indefinitely
+	 * No guarantee is made about the order in which the clients are maintained */
 	public List<T> getConnections () {
 		return Collections.unmodifiableList(connections);
 	}
+
+
+
+	public String getTag(){
+		return "KryoServer";
+	}
+
+
 }

@@ -43,7 +43,7 @@ public class ChatRmiServer {
 				players.remove(player);
 				if (player.name != null) {
 					// Announce to everyone that someone (with a registered name) has left.
-					String message = player.name + " disconnected.";
+					String message = player.name + " onDisconnected.";
 					for (Player p : players)
 						p.frame.addMessage(message);
 					updateNames();
@@ -100,8 +100,8 @@ public class ChatRmiServer {
 			if (name.length() == 0) return;
 			// Store the player's name.
 			this.name = name;
-			// Add a "connected" message to everyone's chat frame, except the new player.
-			String message = name + " connected.";
+			// Add a "onConnected" message to everyone's chat frame, except the new player.
+			String message = name + " onConnected.";
 			for (Player player : players)
 				if (player != this) player.frame.addMessage(message);
 			// Set the names on everyone's chat frame.

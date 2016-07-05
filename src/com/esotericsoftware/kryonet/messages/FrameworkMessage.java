@@ -17,37 +17,44 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryonet;
+package com.esotericsoftware.kryonet.messages;
 
 import com.esotericsoftware.minlog.Log;
 
 /** Marker interface to denote that a message is used by the Ninja framework and is generally invisible to the developer. Eg, these
  * messages are only logged at the {@link Log#LEVEL_TRACE} level.
  * @author Nathan Sweet <misc@n4te.com> */
-public interface FrameworkMessage {
+public interface FrameworkMessage extends BidirectionalMessage {
 	FrameworkMessage.KeepAlive keepAlive = new KeepAlive();
 
+
 	/** Internal message to give the client the server assigned connection ID. */
-	class RegisterTCP implements FrameworkMessage {
+	final class RegisterTCP implements FrameworkMessage {
 		public int connectionID;
 	}
 
 	/** Internal message to give the server the client's UDP port. */
-	class RegisterUDP implements FrameworkMessage {
+	final class RegisterUDP implements FrameworkMessage {
 		public int connectionID;
 	}
 
 	/** Internal message to keep connections alive. */
-	class KeepAlive implements FrameworkMessage {
+	final class KeepAlive implements FrameworkMessage {
+
 	}
 
 	/** Internal message to discover running servers. */
-	class DiscoverHost implements FrameworkMessage {
+	final class DiscoverHost implements FrameworkMessage {
+
 	}
 
 	/** Internal message to determine round trip time. */
-	class Ping implements FrameworkMessage {
+	final class Ping implements FrameworkMessage {
 		public int id;
 		public boolean isReply;
+
+
 	}
+
+
 }

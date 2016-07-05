@@ -20,10 +20,12 @@
 package com.esotericsoftware.kryonet;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryonet.FrameworkMessage.Ping;
-import com.esotericsoftware.kryonet.adapters.Listener;
+import com.esotericsoftware.kryonet.messages.FrameworkMessage;
+import com.esotericsoftware.kryonet.messages.FrameworkMessage.Ping;
+import com.esotericsoftware.kryonet.messages.Message;
 import com.esotericsoftware.kryonet.serializers.Serialization;
 import com.esotericsoftware.kryonet.util.KryoNetException;
+import com.esotericsoftware.minlog.Log;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -32,8 +34,8 @@ import java.net.SocketAddress;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 import static com.esotericsoftware.minlog.Log.*;
 
@@ -42,36 +44,43 @@ import static com.esotericsoftware.minlog.Log.*;
 /** Represents a TCP and optionally a UDP connection between a {@link Client} and a {@link Server}. If either underlying connection
  * is closed or errors, both connections are closed.
  * @author Nathan Sweet <misc@n4te.com> */
-public class Connection {
+public class Connection<MSG extends Message> {
+	protected static final ConcurrentHashMap<Query<?>, Consumer<?>> queries = new ConcurrentHashMap<>();
+
+
+
 	int id = -1;
 	private String name;
 	EndPoint endPoint;
 	TcpConnection tcp;
 	UdpConnection udp;
 	InetSocketAddress udpRemoteAddress;
+
 	private int lastPingID;
 	private long lastPingSendTime;
 	private int returnTripTime;
+
+
 	volatile boolean isConnected;
 	volatile KryoNetException lastProtocolError;
 
-	private final List<Listener<Connection>> listeners = new CopyOnWriteArrayList<>();
+	private Listener<Connection> listener;
 
 	protected Connection () {
 	}
 
 	void initialize (Serialization serialization, Listener<Connection> handler, int writeBufferSize, int objectBufferSize) {
 		tcp = new TcpConnection(serialization, writeBufferSize, objectBufferSize);
-		listeners.add(handler);
+		listener = handler;
 	}
 
-	/** Returns the server assigned ID. Will return -1 if this connection has never been connected or the last assigned ID if this
-	 * connection has been disconnected. */
+	/** Returns the server assigned ID. Will return -1 if this connection has never been onConnected or the last assigned ID if this
+	 * connection has been onDisconnected. */
 	public int getID () {
 		return id;
 	}
 
-	/** Returns true if this connection is connected to the remote end. Note that a connection can become disconnected at any time. */
+	/** Returns true if this connection is onConnected to the remote end. Note that a connection can become onDisconnected at any time. */
 	public boolean isConnected () {
 		return isConnected;
 	}
@@ -86,22 +95,72 @@ public class Connection {
    }
 
 
-	void sendBytesTCP(ByteBuffer raw){
 
+
+	void sendBytesTCP(ByteBuffer raw){
+		try {
+			tcp.sendRaw(raw);
+		} catch (IOException e) {
+			if (DEBUG) debug("kryonet", "Unable to sendRaw TCP with connection: " + this, e);
+			close();
+		}
 	}
 
 	void sendBytesUDP(ByteBuffer raw){
+		SocketAddress address = udpRemoteAddress;
+		if (address == null && udp != null) address = udp.connectedAddress;
+		if (address == null && isConnected) throw new IllegalStateException("Connection is not onConnected via UDP.");
 
+		try {
+			if (address == null)
+				throw new SocketException("Connection is closed.");
+			udp.sendRaw(raw, address);
+		} catch (IOException ex) {
+			if (DEBUG) debug("kryonet", "Unable to sendRaw UDP with connection: " + this, ex);
+			close();
+		} catch (KryoNetException ex) {
+			if (ERROR) error("kryonet", "Unable to sendRaw UDP with connection: " + this, ex);
+			close();
+		}
 	}
+
+
+
+
+
+	/** Sends a Message via TCP or UDP depending on the return value of
+	 * msg.isReliable(). If isReliable() returns true, the message
+	 * is sent over TCP, otherwise it's sent over UDP.
+	 *
+	 * This is the preferred way to send a message to an endpoint.
+	 * To send a particular instance of a message over TCP or UDP
+	 * regardless of its implementation of isReliable see
+	 * {@link #sendTCP(MSG) } and {@link #sendUDP(MSG) }
+	 *
+	 * @return The number of bytes sent*/
+	public int send(MSG msg){
+		if(msg.isReliable())
+			return sendTCP(msg);
+		else
+			return sendUDP(msg);
+	}
+
 
 
 	/** Sends the object over the network using TCP.
 	 * @return The number of bytes sent.
 	 * @see Kryo#register(Class, com.esotericsoftware.kryo.Serializer) */
-	public int sendTCP (Object object) {
+	public int sendTCP(MSG msg){
+		return sendObjectTCP(msg);
+	}
+
+
+	int sendObjectTCP (Object object) {
+		Log.info("Sending TCP " + object);
+
 		if (object == null) throw new IllegalArgumentException("object cannot be null.");
 		try {
-			int length = tcp.send(this, object);
+			int length = tcp.send(object);
 			if (length == 0) {
 				if (TRACE) trace("kryonet", this + " TCP had nothing to send.");
 			} else if (DEBUG) {
@@ -113,12 +172,8 @@ public class Connection {
 				}
 			}
 			return length;
-		} catch (IOException ex) {
-			if (DEBUG) debug("kryonet", "Unable to send TCP with connection: " + this, ex);
-			close();
-			return 0;
-		} catch (KryoNetException ex) {
-			if (ERROR) error("kryonet", "Unable to send TCP with connection: " + this, ex);
+		} catch (IOException | KryoNetException ex) {
+			if (DEBUG) debug("kryonet", "Unable to sendRaw TCP with connection: " + this, ex);
 			close();
 			return 0;
 		}
@@ -128,18 +183,24 @@ public class Connection {
 	 * @return The number of bytes sent.
 	 * @see Kryo#register(Class, com.esotericsoftware.kryo.Serializer)
 	 * @throws IllegalStateException if this connection was not opened with both TCP and UDP. */
-	public int sendUDP (Object object) {
+	public int sendUDP(MSG msg){
+		return sendObjectUDP(msg);
+	}
+
+
+
+	int sendObjectUDP (Object object) {
 		if (object == null) throw new IllegalArgumentException("object cannot be null.");
 		SocketAddress address = udpRemoteAddress;
 		if (address == null && udp != null) address = udp.connectedAddress;
-		if (address == null && isConnected) throw new IllegalStateException("Connection is not connected via UDP.");
+		if (address == null && isConnected) throw new IllegalStateException("Connection is not onConnected via UDP.");
 
 		try {
 			if (address == null) throw new SocketException("Connection is closed.");
 
 			int length = udp.send(object, address);
 			if (length == 0) {
-				if (TRACE) trace("kryonet", this + " UDP had nothing to send.");
+				if (TRACE) trace("kryonet", this + " UDP had nothing to sendRaw.");
 			} else if (DEBUG) {
 				if (length != -1) {
 					String objectString = object.getClass().getSimpleName();
@@ -149,15 +210,11 @@ public class Connection {
 						trace("kryonet", this + " sent UDP: " + objectString + " (" + length + ")");
 					}
 				} else
-					debug("kryonet", this + " was unable to send, UDP socket buffer full.");
+					debug("kryonet", this + " was unable to sendRaw, UDP socket buffer full.");
 			}
 			return length;
-		} catch (IOException ex) {
-			if (DEBUG) debug("kryonet", "Unable to send UDP with connection: " + this, ex);
-			close();
-			return 0;
-		} catch (KryoNetException ex) {
-			if (ERROR) error("kryonet", "Unable to send UDP with connection: " + this, ex);
+		} catch (IOException | KryoNetException ex) {
+			if (DEBUG) debug("kryonet", "Unable to sendRaw UDP with connection: " + this, ex);
 			close();
 			return 0;
 		}
@@ -170,23 +227,23 @@ public class Connection {
 		if (udp != null && udp.connectedAddress != null) udp.close();
 		if (wasConnected) {
 			notifyDisconnected();
-			if (INFO) info("kryonet", this + " disconnected.");
+			if (INFO) info("kryonet", this + " onDisconnected.");
 		}
 		setConnected(false);
 	}
 
 	/** Requests the connection to communicate with the remote computer to determine a new value for the
-	 * {@link #getReturnTripTime() return trip time}. When the connection receives a {@link FrameworkMessage.Ping} object with
+	 * {@link #getReturnTripTime() return trip time}. When the connection receives a {@link Ping} object with
 	 * {@link Ping#isReply isReply} set to true, the new return trip time is available. */
 	public void updateReturnTripTime () {
 		Ping ping = new Ping();
 		ping.id = lastPingID++;
 		lastPingSendTime = System.currentTimeMillis();
-		sendTCP(ping);
+		sendObjectTCP(ping);
 	}
 
 	/** Returns the last calculated TCP return trip time, or -1 if {@link #updateReturnTripTime()} has never been called or the
-	 * {@link FrameworkMessage.Ping} response has not yet been received. */
+	 * {@link Ping} response has not yet been received. */
 	public int getReturnTripTime () {
 		return returnTripTime;
 	}
@@ -218,50 +275,16 @@ public class Connection {
 				Socket socket = tcp.socketChannel.socket();
 				if (socket != null) {
 					InetSocketAddress remoteSocketAddress = (InetSocketAddress)socket.getRemoteSocketAddress();
-					if (remoteSocketAddress != null) info("kryonet", this + " connected: " + remoteSocketAddress.getAddress());
+					if (remoteSocketAddress != null) info("kryonet", this + " onConnected: " + remoteSocketAddress.getAddress());
 				}
 			}
 		}
-		for(Listener<Connection> l : listeners)
-			l.connected(this);
-	}
-
-	void notifyDisconnected () {
-		for(Listener<Connection> l : listeners)
-			l.disconnected(this);
-	}
-
-	void notifyIdle () {
-		for(Listener<Connection> l : listeners)
-			l.idle(this);
-	}
-
-	void notifyReceived (Object object) {
-		if (object instanceof Ping) {
-			Ping ping = (Ping)object;
-			if (ping.isReply) {
-				if (ping.id == lastPingID - 1) {
-					returnTripTime = (int)(System.currentTimeMillis() - lastPingSendTime);
-					if (TRACE) trace("kryonet", this + " return trip time: " + returnTripTime);
-				}
-			} else {
-				ping.isReply = true;
-				sendTCP(ping);
-			}
-		}
-
-		for(Listener<Connection> l : listeners)
-			l.received(this, object);
 	}
 
 
 
-	public void addListener(Listener<Connection> listener){
-		listeners.add(listener);
-	}
-
-	public void removeListener(Listener<Connection> listener){
-		listeners.remove(listener);
+	private void notifyDisconnected () {
+		listener.onDisconnected(this);
 	}
 
 
@@ -271,7 +294,7 @@ public class Connection {
 		return endPoint;
 	}
 
-	/** Returns the IP address and port of the remote end of the TCP connection, or null if this connection is not connected. */
+	/** Returns the IP address and port of the remote end of the TCP connection, or null if this connection is not onConnected. */
 	public InetSocketAddress getRemoteAddressTCP () {
 		SocketChannel socketChannel = tcp.socketChannel;
 		if (socketChannel != null) {
@@ -283,7 +306,7 @@ public class Connection {
 		return null;
 	}
 
-	/** Returns the IP address and port of the remote end of the UDP connection, or null if this connection is not connected. */
+	/** Returns the IP address and port of the remote end of the UDP connection, or null if this connection is not onConnected. */
 	public InetSocketAddress getRemoteAddressUDP () {
 		InetSocketAddress connectedAddress = udp.connectedAddress;
 		if (connectedAddress != null) return connectedAddress;
@@ -315,7 +338,7 @@ public class Connection {
 	}
 
 	/** If the percent of the TCP write buffer that is filled is less than the specified threshold,
-	 * {@link Listener#idle(Connection)} will be called for each network thread update. Default is 0.1. */
+	 * {@link Listener#onIdle(Connection)} will be called for each network thread update. Default is 0.1. */
 	public void setIdleThreshold (float idleThreshold) {
 		tcp.idleThreshold = idleThreshold;
 	}
@@ -327,9 +350,35 @@ public class Connection {
 		return "Connection(" + id + ")";
 	}
 
+
+	public void acceptPing(Ping ping){
+		if (ping.isReply) {
+			if (ping.id == lastPingID - 1) {
+				returnTripTime = ((int)(System.currentTimeMillis() - lastPingSendTime));
+				if (TRACE) trace("kryonet", this + " return trip time: " + returnTripTime);
+			}
+		} else {
+			ping.isReply = true;
+			this.sendObjectTCP(ping);
+		}
+	}
+
+
 	void setConnected (boolean isConnected) {
 		this.isConnected = isConnected;
 		if (isConnected && name == null) name = "Connection " + id;
 	}
 
+	int getLastPingID() {
+		return lastPingID;
+	}
+
+
+	void setReturnTripTime(int returnTripTime) {
+		this.returnTripTime = returnTripTime;
+	}
+
+	long getLastPingSendTime() {
+		return lastPingSendTime;
+	}
 }

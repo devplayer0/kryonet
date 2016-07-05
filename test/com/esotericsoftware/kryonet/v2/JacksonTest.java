@@ -1,4 +1,4 @@
-package com.esotericsoftware.kryonet;
+package com.esotericsoftware.kryonet.v2;
 
 import com.esotericsoftware.kryonet.serializers.JacksonSerialization;
 

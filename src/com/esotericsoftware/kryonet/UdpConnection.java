@@ -21,6 +21,7 @@ package com.esotericsoftware.kryonet;
 
 import com.esotericsoftware.kryonet.serializers.Serialization;
 import com.esotericsoftware.kryonet.util.KryoNetException;
+import com.esotericsoftware.kryonet.util.ProtocolUtils;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -30,9 +31,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-
-import static com.esotericsoftware.minlog.Log.DEBUG;
-import static com.esotericsoftware.minlog.Log.debug;
 
 /** @author Nathan Sweet <misc@n4te.com> */
 class UdpConnection {
@@ -143,13 +141,14 @@ class UdpConnection {
 
 
 	/** This method is thread safe. */
-	public int send (ByteBuffer raw, SocketAddress address) throws IOException {
+	public int sendRaw(ByteBuffer raw, SocketAddress address) throws IOException {
 		DatagramChannel datagramChannel = this.datagramChannel;
 		if (datagramChannel == null) throw new SocketException("Connection is closed.");
 		synchronized (writeLock) {
 			try {
 				try {
 					writeBuffer.put(raw);
+					raw.rewind();
 				} catch (Exception ex) {
 					throw new KryoNetException("Error broadcasting on udp" , ex);
 				}
@@ -171,18 +170,19 @@ class UdpConnection {
 
 	public void close () {
 		connectedAddress = null;
-		try {
-			if (datagramChannel != null) {
-				datagramChannel.close();
-				datagramChannel = null;
-				if (selectionKey != null) selectionKey.selector().wakeup();
-			}
-		} catch (IOException ex) {
-			if (DEBUG) debug("kryonet", "Unable to close UDP connection.", ex);
+
+		if(ProtocolUtils.close(datagramChannel, selectionKey)) {
+			datagramChannel = null;
 		}
 	}
 
 	public boolean needsKeepAlive (long time) {
 		return connectedAddress != null && keepAliveMillis > 0 && time - lastCommunicationTime > keepAliveMillis;
+	}
+
+
+	@Override
+	public String toString(){
+		return "UdpConnection(" + connectedAddress +")";
 	}
 }

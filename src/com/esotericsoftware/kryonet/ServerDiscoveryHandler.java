@@ -19,7 +19,7 @@
 
 package com.esotericsoftware.kryonet;
 
-import com.esotericsoftware.kryonet.FrameworkMessage.DiscoverHost;
+import com.esotericsoftware.kryonet.messages.FrameworkMessage.DiscoverHost;
 import com.esotericsoftware.kryonet.serializers.Serialization;
 
 import java.io.IOException;

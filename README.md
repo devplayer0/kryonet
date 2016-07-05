@@ -133,11 +133,11 @@ Note that KryoNet does not currently implement any extra features for UDP, such 
 
 KryoNet uses a few buffers for serialization and deserialization that must be sized appropriately for a specific application. See the `Client` and `Server` constructors for customizing the buffer sizes. There are two types of buffers, a write buffer and an object buffer.
 
-To receive an object graph, the bytes are stored in the object buffer until all of the bytes for the object are received, then the object is deserialized. The object buffer should be sized at least as large as the largest object that will be received.
+To received an object graph, the bytes are stored in the object buffer until all of the bytes for the object are received, then the object is deserialized. The object buffer should be sized at least as large as the largest object that will be received.
 
 To send an object graph, it is serialized to the write buffer where it is queued until it can be written to the network socket. Typically it is written immediately, but when sending a lot of data or when the network is slow, it may remain queued in the write buffer for a short time. The write buffer should be sized at least as large as the largest object that will be sent, plus some head room to allow for some serialized objects to be queued. The amount of head room needed is dependent upon the size of objects being sent and how often they are sent.
 
-To avoid very large buffer sizes, object graphs can be split into smaller pieces and sent separately. Collecting the pieces and reassembling the larger object graph, or writing them to disk, etc is left to the application code. If a large number of small object graphs are queued to be written at once, it may exceed the write buffer size. `TcpIdleSender` and `InputStreamSender` can be used to queue more data only when the connection is idle. Also see the `setIdleThreshold` method on the Connection class.
+To avoid very large buffer sizes, object graphs can be split into smaller pieces and sent separately. Collecting the pieces and reassembling the larger object graph, or writing them to disk, etc is left to the application code. If a large number of small object graphs are queued to be written at once, it may exceed the write buffer size. `TcpIdleSender` and `InputStreamSender` can be used to queue more data only when the connection is onIdle. Also see the `setIdleThreshold` method on the Connection class.
 
 
 ## Threading

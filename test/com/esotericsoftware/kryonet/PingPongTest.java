@@ -21,6 +21,8 @@ package com.esotericsoftware.kryonet;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+import com.esotericsoftware.kryonet.messages.BidirectionalMessage;
+import com.esotericsoftware.kryonet.v2.KryoNetTestCase;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -40,13 +42,13 @@ public class PingPongTest extends KryoNetTestCase {
 		register(server.getKryo());
 		startEndPoint(server);
 		server.bind(tcpPort, udpPort);
-		server.addListener(new ConnectionAdapter<Connection>() {
-			public void connected (Connection connection) {
+		server.addListener(new ConnectionAdapter<ClientConnection>() {
+			public void onConnected(ClientConnection connection) {
 				connection.sendTCP(dataTCP);
 				connection.sendUDP(dataUDP); // Note UDP ping pong stops if a UDP packet is lost.
 			}
 
-			public void received (Connection connection, Object object) {
+			public void received (ClientConnection connection, Object object) {
 				if (object instanceof Data) {
 					Data data = (Data)object;
 					if (data.isTCP) {
@@ -111,7 +113,7 @@ public class PingPongTest extends KryoNetTestCase {
 		data.floats = new float[] {0, -0, 1, -1, 123456, -123456, 0.1f, 0.2f, -0.3f, (float)Math.PI, Float.MAX_VALUE,
 			Float.MIN_VALUE};
 		data.doubles = new double[] {0, -0, 1, -1, 123456, -123456, 0.1d, 0.2d, -0.3d, Math.PI, Double.MAX_VALUE, Double.MIN_VALUE};
-		data.longs = new long[] {0, -0, 1, -1, 123456, -123456, 99999999999l, -99999999999l, Long.MAX_VALUE, Long.MIN_VALUE};
+		data.longs = new long[] {0, -0, 1, -1, 123456, -123456, 99999999999L, -99999999999L, Long.MAX_VALUE, Long.MIN_VALUE};
 		data.bytes = new byte[] {-123, 123, -1, 0, 1, Byte.MAX_VALUE, Byte.MIN_VALUE};
 		data.chars = new char[] {32345, 12345, 0, 1, 63, Character.MAX_VALUE, Character.MIN_VALUE};
 		data.booleans = new boolean[] {true, false};
@@ -121,7 +123,7 @@ public class PingPongTest extends KryoNetTestCase {
 			Float.MIN_VALUE};
 		data.Doubles = new Double[] {0d, -0d, 1d, -1d, 123456d, -123456d, 0.1d, 0.2d, -0.3d, Math.PI, Double.MAX_VALUE,
 			Double.MIN_VALUE};
-		data.Longs = new Long[] {0l, -0l, 1l, -1l, 123456l, -123456l, 99999999999l, -99999999999l, Long.MAX_VALUE, Long.MIN_VALUE};
+		data.Longs = new Long[] {0L, -0L, 1L, -1L, 123456L, -123456L, 99999999999L, -99999999999L, Long.MAX_VALUE, Long.MIN_VALUE};
 		data.Bytes = new Byte[] {-123, 123, -1, 0, 1, Byte.MAX_VALUE, Byte.MIN_VALUE};
 		data.Chars = new Character[] {32345, 12345, 0, 1, 63, Character.MAX_VALUE, Character.MIN_VALUE};
 		data.Booleans = new Boolean[] {true, false};
@@ -148,7 +150,7 @@ public class PingPongTest extends KryoNetTestCase {
 		kryo.register(Data.class);
 	}
 
-	static public class Data {
+	static public class Data implements BidirectionalMessage{
 		public String string;
 		public String[] strings;
 		public int[] ints;

@@ -17,64 +17,84 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryonet;
+package com.esotericsoftware.kryonet.v2;
 
+import com.esotericsoftware.kryonet.ClientConnection;
+import com.esotericsoftware.kryonet.ServerConnection;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+import com.esotericsoftware.kryonet.utils.StringMessage;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
+
+
+
 
 public class ReuseTest extends KryoNetTestCase {
 	public void testPingPong () throws IOException {
 		final AtomicInteger stringCount = new AtomicInteger(0);
 
-		final Server server = new Server();
-		startEndPoint(server);
-		server.addListener(new ConnectionAdapter<Connection>() {
-			public void connected (Connection connection) {
-				connection.sendTCP("TCP from server");
-				connection.sendUDP("UDP from server");
+		server.addListener(new ConnectionAdapter<ClientConnection>() {
+			@Override
+			public void onConnected(ClientConnection connection) {
+				try {
+					connection.sendTCP(new StringMessage("TCP from server"));
+					connection.sendUDP(new StringMessage("UDP from server"));
+				} catch (Exception e) {
+					test.fail(e);
+				}
 			}
 
-			public void received (Connection connection, Object object) {
-				if (object instanceof String) {
+			@Override
+			public void received (ClientConnection connection, Object object) {
+				if (object instanceof StringMessage) {
 					stringCount.incrementAndGet();
 					System.out.println(object);
+				} else {
+					test.fail("Received " + object);
 				}
 			}
 		});
 
 		// ----
+		final int count = 5;
 
-		final Client client = Client.createKryoClient();
-		startEndPoint(client);
-		client.addListener(new ConnectionAdapter() {
-			public void connected (Connection connection) {
-				connection.sendTCP("TCP from client");
-				connection.sendUDP("UDP from client");
+
+		client.addListener(new ConnectionAdapter<ServerConnection>() {
+			@Override
+			public void onConnected(ServerConnection connection) {
+				try {
+					connection.sendTCP(new StringMessage("TCP from client"));
+					connection.sendUDP(new StringMessage("UDP from client"));
+				} catch (Exception e){
+					test.fail(e);
+				}
 			}
 
-			public void received (Connection connection, Object object) {
-				if (object instanceof String) {
+			@Override
+			public void received (ServerConnection connection, Object object) {
+				if (object instanceof StringMessage) {
 					stringCount.incrementAndGet();
 					System.out.println(object);
+				} else {
+					test.fail("Received " + object);
 				}
 			}
 		});
 
-		int count = 5;
+		reg(server.getKryo(), client.getKryo(), StringMessage.class);
+		start(server, client);
+		sleep(300);
+
 		for (int i = 0; i < count; i++) {
 			server.bind(tcpPort, udpPort);
-			client.connect(5000, host, tcpPort, udpPort);
-			try {
-				Thread.sleep(250);
-			} catch (InterruptedException ex) {
-			}
+			client.connect(1000, host, tcpPort, udpPort);
+			sleep(300);
 			server.close();
 		}
-		assertEquals(count * 2 * 2, stringCount.get());
 
-		stopEndPoints();
-		waitForThreads(10000);
+		sleep(300);
+		client.close();
+		assertEquals((count+1) * 2 * 2, stringCount.get());
 	}
 }

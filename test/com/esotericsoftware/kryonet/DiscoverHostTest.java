@@ -23,6 +23,7 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
 import com.esotericsoftware.kryonet.serializers.Serialization;
+import com.esotericsoftware.kryonet.v2.KryoNetTestCase;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -45,8 +46,9 @@ public class DiscoverHostTest extends KryoNetTestCase {
 		final Server server = new Server();
 		startEndPoint(server);
 		server.bind(54555);
-		server.addListener(new ConnectionAdapter<Connection>() {
-			public void disconnected (Connection connection) {
+		server.addListener(new ConnectionAdapter<ClientConnection>() {
+			@Override
+			public void onDisconnected(ClientConnection connection) {
 				broadcastServer.stop();
 				server.stop();
 			}
@@ -140,7 +142,7 @@ public class DiscoverHostTest extends KryoNetTestCase {
 		startEndPoint(server);
 		server.bind(54555);
 		server.addListener(new ConnectionAdapter<Connection>() {
-			public void disconnected (Connection connection) {
+			public void onDisconnected(Connection connection) {
 				broadcastServer.stop();
 				server.stop();
 			}

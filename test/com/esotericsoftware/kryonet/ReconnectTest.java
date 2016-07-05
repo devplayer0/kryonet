@@ -20,6 +20,7 @@
 package com.esotericsoftware.kryonet;
 
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+import com.esotericsoftware.kryonet.v2.KryoNetTestCase;
 
 import java.io.IOException;
 import java.util.Timer;
@@ -34,7 +35,7 @@ public class ReconnectTest extends KryoNetTestCase {
 		startEndPoint(server);
 		server.bind(tcpPort);
 		server.addListener(new ConnectionAdapter<Connection>() {
-			public void connected (final Connection connection) {
+			public void onConnected(final Connection connection) {
 				timer.schedule(new TimerTask() {
 					public void run () {
 						System.out.println("Disconnecting after 2 seconds.");
@@ -50,7 +51,7 @@ public class ReconnectTest extends KryoNetTestCase {
 		final Client client = Client.createKryoClient();
 		startEndPoint(client);
 		client.addListener(new ConnectionAdapter<Connection>() {
-			public void disconnected (Connection connection) {
+			public void onDisconnected(Connection connection) {
 				if (reconnetCount.getAndIncrement() == 2) {
 					stopEndPoints();
 					return;

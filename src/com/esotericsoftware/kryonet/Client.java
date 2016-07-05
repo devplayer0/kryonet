@@ -20,10 +20,13 @@
 package com.esotericsoftware.kryonet;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryonet.FrameworkMessage.DiscoverHost;
-import com.esotericsoftware.kryonet.FrameworkMessage.RegisterTCP;
-import com.esotericsoftware.kryonet.FrameworkMessage.RegisterUDP;
-import com.esotericsoftware.kryonet.adapters.Listener;
+import com.esotericsoftware.kryonet.messages.FrameworkMessage;
+import com.esotericsoftware.kryonet.messages.FrameworkMessage.DiscoverHost;
+import com.esotericsoftware.kryonet.messages.FrameworkMessage.RegisterTCP;
+import com.esotericsoftware.kryonet.messages.FrameworkMessage.RegisterUDP;
+import com.esotericsoftware.kryonet.messages.MessageToServer;
+import com.esotericsoftware.kryonet.messages.QueryToClient;
+import com.esotericsoftware.kryonet.messages.QueryToServer;
 import com.esotericsoftware.kryonet.serializers.KryoSerialization;
 import com.esotericsoftware.kryonet.serializers.Serialization;
 import com.esotericsoftware.kryonet.util.KryoNetException;
@@ -36,13 +39,12 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.security.AccessControlException;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import static com.esotericsoftware.minlog.Log.*;
 
 /** Represents a TCP and optionally a UDP connection to a {@link Server}.
  * @author Nathan Sweet <misc@n4te.com> */
-public class Client<T extends Connection> implements EndPoint<T> {
+public class Client<T extends ServerConnection> extends EndPoint<MessageToServer, T> {
 	static {
 		try {
 			// Needed for NIO selectors on Android 2.2.
@@ -51,62 +53,20 @@ public class Client<T extends Connection> implements EndPoint<T> {
 		}
 	}
 
+	private final String TAG = getTag();
 
 	private final T connection;
 	private final Serialization serialization;
-	private Selector selector;
-	private int emptySelects;
 	private volatile boolean tcpRegistered, udpRegistered;
 	private final Object tcpRegistrationLock = new Object();
 	private final Object udpRegistrationLock = new Object();
 	private volatile boolean shutdown;
-	private final Object updateLock = new Object();
-	private Thread updateThread;
 	private int connectTimeout;
 	private InetAddress connectHost;
 	private int connectTcpPort;
 	private int connectUdpPort;
 	private boolean isClosed;
 	private ClientDiscoveryHandler discoveryHandler;
-
-	private final List<Listener<? super T>> listeners = new CopyOnWriteArrayList<>();
-
-
-	private final Listener<Connection> delegator = new Listener<Connection>() {
-
-		public void connected (Connection conn) {
-			final List<Listener<? super T>> listeners = Client.this.listeners;
-
-			for (int i = 0, n = listeners.size(); i < n; i++)
-				listeners.get(i).connected(connection);
-		}
-
-		public void disconnected (Connection conn) {
-			final List<Listener<? super T>> listeners = Client.this.listeners;
-
-			for (int i = 0, n = listeners.size(); i < n; i++)
-				listeners.get(i).disconnected(connection);
-		}
-
-		public void received (Connection conn, Object object) {
-			final List<Listener<? super T>> listeners = Client.this.listeners;
-
-			for (int i = 0, n = listeners.size(); i < n; i++)
-				listeners.get(i).received(connection, object);
-		}
-
-		public void idle (Connection conn) {
-			final List<Listener<? super T>> listeners = Client.this.listeners;
-
-
-			for (int i = 0, n = listeners.size(); i < n; i++) {
-				listeners.get(i).idle(connection);
-				if (!connection.isIdle()) break;
-			}
-		}
-	};
-
-
 
 
 	/** Creates a Client with a write buffer size of 8192 and an object buffer size of 2048. */
@@ -148,6 +108,32 @@ public class Client<T extends Connection> implements EndPoint<T> {
 			throw new RuntimeException("Error opening selector.", ex);
 		}
 	}
+
+
+
+	private Listener<Connection> delegator = new Listener<Connection>() {
+		@Override
+		public void onConnected(Connection c) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public void onDisconnected(Connection c) {
+			handleDisconnect(connection);
+		}
+
+		@Override
+		public void onIdle(Connection c) {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public void received(Connection connection, Object msg) {
+			throw new UnsupportedOperationException();
+		}
+	};
+
+
 
 	public void setDiscoveryHandler (ClientDiscoveryHandler newDiscoveryHandler) {
 		discoveryHandler = newDiscoveryHandler;
@@ -196,9 +182,9 @@ public class Client<T extends Connection> implements EndPoint<T> {
 		close();
 		if (INFO) {
 			if (udpPort != -1)
-				info("kryonet", "Connecting: " + host + ":" + tcpPort + "/" + udpPort);
+				info(TAG, "Connecting: " + host + ":" + tcpPort + "/" + udpPort);
 			else
-				info("kryonet", "Connecting: " + host + ":" + tcpPort);
+				info(TAG, "Connecting: " + host + ":" + tcpPort);
 		}
 		connection.id = -1;
 		try {
@@ -269,38 +255,129 @@ public class Client<T extends Connection> implements EndPoint<T> {
 	 * connect.
 	 * @throws IllegalStateException if connect has never been called. */
 	public void reconnect (int timeout) throws IOException {
-		if (connectHost == null) throw new IllegalStateException("This client has never been connected.");
+		if (connectHost == null) throw new IllegalStateException("This client has never been onConnected.");
 		connect(timeout, connectHost, connectTcpPort, connectUdpPort);
 	}
+
+
+
+
+	protected void registerTCP(RegisterTCP msg, T connection){
+		connection.id = msg.connectionID;
+		synchronized (tcpRegistrationLock) {
+			tcpRegistered = true;
+			tcpRegistrationLock.notifyAll();
+			if (TRACE) trace(TAG, this + " received TCP: RegisterTCP");
+			if (connection.udp == null) connection.setConnected(true);
+		}
+		if (connection.udp == null) handleOnConnect(connection);
+	}
+
+	protected void registerUDP(RegisterUDP msg, T connection) {
+		synchronized (udpRegistrationLock) {
+			udpRegistered = true;
+			udpRegistrationLock.notifyAll();
+			if (TRACE) trace(TAG, this + " received UDP: RegisterUDP");
+			if (DEBUG) {
+				debug(TAG, "Port " + connection.udp.datagramChannel.socket().getLocalPort()
+						+ "/UDP onConnected to: " + connection.udp.connectedAddress);
+			}
+			connection.setConnected(true);
+		}
+		handleOnConnect(connection);
+	}
+
+
+
+
+	private void handleTCP(Object msg, T fromConnection){
+		final List<Listener<? super T>> listeners = Client.this.listeners;
+
+		if(msg instanceof FrameworkMessage){
+			if(TRACE){
+				String objectString = msg.getClass().getSimpleName();
+				trace(TAG, this + " received TCP: " + objectString);
+			}
+			return;
+		}
+
+		if (DEBUG) {
+			String objectString = msg.getClass().getSimpleName();
+			debug(TAG, this + " received TCP: " + objectString);
+		}
+
+
+
+		if(msg instanceof QueryToClient){
+			((Query) msg).setOrigin(connection);
+		} else if (msg instanceof QueryToServer){
+			connection.accept((QueryToServer<?>) msg);
+			return;
+		}
+
+		for (int i = 0, n = listeners.size(); i < n; ++i)
+			listeners.get(i).received(connection, msg);
+	}
+
+
+	private void handleUDP(Object msg, T fromConnection){
+		final List<Listener<? super T>> listeners = Client.this.listeners;
+
+		if(msg instanceof FrameworkMessage){
+			if(TRACE){
+				String objectString = msg.getClass().getSimpleName();
+				trace(TAG, this + " received TCP: " + objectString);
+			}
+			return;
+		}
+
+		if (DEBUG) {
+			String objectString = msg.getClass().getSimpleName();
+			debug(TAG, this + " received TCP: " + objectString);
+		}
+
+
+		for (int i = 0, n = listeners.size(); i < n; ++i)
+			listeners.get(i).received(connection, msg);
+	}
+
+
+
+	private void handleOnConnect(T fromConnection){
+		connection.notifyConnected();
+		final List<Listener<? super T>> listeners = this.listeners;
+
+		for (int i = 0, n = listeners.size(); i < n; ++i)
+			listeners.get(i).onConnected(connection);
+
+	}
+
+
+	private void handleOnIdle(T fromConnection){
+		final List<Listener<? super T>> listeners = this.listeners;
+
+
+		for (int i = 0, n = listeners.size(); i < n; ++i) {
+			listeners.get(i).onIdle(connection);
+			if (!connection.isIdle()) break;
+		}
+	}
+
+	private void handleDisconnect(T fromConnection){
+		final List<Listener<? super T>> listeners = this.listeners;
+
+		for (int i = 0, n = listeners.size(); i < n; ++i)
+			listeners.get(i).onDisconnected(connection);
+	}
+
 
 	/** Reads or writes any pending data for this client. Multiple threads should not call this method at the same time.
 	 * @param timeout Wait for up to the specified milliseconds for data to be ready to process. May be zero to return immediately
 	 *           if there is no data to process. */
 	public void update (int timeout) throws IOException {
-		updateThread = Thread.currentThread();
-		synchronized (updateLock) { // Blocks to avoid a select while the selector is used to bind the server connection.
-		}
-		long startTime = System.currentTimeMillis();
-		int select = 0;
-		if (timeout > 0) {
-			select = selector.select(timeout);
-		} else {
-			select = selector.selectNow();
-		}
-		if (select == 0) {
-			++emptySelects;
-			if (emptySelects == 100) {
-				emptySelects = 0;
-				// NIO freaks and returns immediately with 0 sometimes, so try to keep from hogging the CPU.
-				long elapsedTime = System.currentTimeMillis() - startTime;
-				try {
-					if (elapsedTime < 25) Thread.sleep(25 - elapsedTime);
-				} catch (InterruptedException ex) {
-				}
-			}
-		} else {
-			emptySelects = 0;
+		if(isSelectReady(timeout)) {
 			isClosed = false;
+			emptySelects = 0;
 			Set<SelectionKey> keys = selector.selectedKeys();
 			synchronized (keys) {
 				for (Iterator<SelectionKey> iter = keys.iterator(); iter.hasNext();) {
@@ -308,61 +385,53 @@ public class Client<T extends Connection> implements EndPoint<T> {
 					SelectionKey selectionKey = iter.next();
 					iter.remove();
 					try {
-						int ops = selectionKey.readyOps();
+						final int ops = selectionKey.readyOps();
 						if ((ops & SelectionKey.OP_READ) == SelectionKey.OP_READ) {
 							if (selectionKey.attachment() == connection.tcp) {
 								while (true) {
 									Object object = connection.tcp.readObject();
 									if (object == null) break;
-									if (!tcpRegistered) {
-										if (object instanceof RegisterTCP) {
-											connection.id = ((RegisterTCP)object).connectionID;
-											synchronized (tcpRegistrationLock) {
-												tcpRegistered = true;
-												tcpRegistrationLock.notifyAll();
-												if (TRACE) trace("kryonet", this + " received TCP: RegisterTCP");
-												if (connection.udp == null) connection.setConnected(true);
-											}
-											if (connection.udp == null) connection.notifyConnected();
-										}
-										continue;
-									}
-									if (connection.udp != null && !udpRegistered) {
-										if (object instanceof RegisterUDP) {
-											synchronized (udpRegistrationLock) {
-												udpRegistered = true;
-												udpRegistrationLock.notifyAll();
-												if (TRACE) trace("kryonet", this + " received UDP: RegisterUDP");
-												if (DEBUG) {
-													debug("kryonet", "Port " + connection.udp.datagramChannel.socket().getLocalPort()
-														+ "/UDP connected to: " + connection.udp.connectedAddress);
+									if (object instanceof FrameworkMessage) {
+										if (!tcpRegistered) {
+											if (object instanceof RegisterTCP) {
+												connection.id = ((RegisterTCP) object).connectionID;
+												synchronized (tcpRegistrationLock) {
+													tcpRegistered = true;
+													tcpRegistrationLock.notifyAll();
+													if (TRACE) trace(TAG, this + " received TCP: RegisterTCP");
+													if (connection.udp == null) connection.setConnected(true);
 												}
-												connection.setConnected(true);
+												if (connection.udp == null) handleOnConnect(connection);
 											}
-											connection.notifyConnected();
+											continue;
+										}
+										if (connection.udp != null && !udpRegistered) {
+											if (object instanceof RegisterUDP) {
+												synchronized (udpRegistrationLock) {
+													udpRegistered = true;
+													udpRegistrationLock.notifyAll();
+													if (TRACE) trace(TAG, this + " received UDP: RegisterUDP");
+													if (DEBUG) {
+														debug(TAG, "Port " + connection.udp.datagramChannel.socket().getLocalPort()
+																+ "/UDP connected to: " + connection.udp.connectedAddress);
+													}
+													connection.setConnected(true);
+												}
+												handleOnConnect(connection);
+											}
+											continue;
 										}
 										continue;
 									}
 									if (!connection.isConnected) continue;
-									if (DEBUG) {
-										String objectString = object.getClass().getSimpleName();
-										if (!(object instanceof FrameworkMessage)) {
-											debug("kryonet", this + " received TCP: " + objectString);
-										} else if (TRACE) {
-											trace("kryonet", this + " received TCP: " + objectString);
-										}
-									}
-									connection.notifyReceived(object);
+									handleTCP(object, connection);
 								}
 							} else {
 								if (connection.udp.readFromAddress() == null) continue;
 								Object object = connection.udp.readObject();
-								if (object == null) continue;
-								if (DEBUG) {
-									String objectString = object.getClass().getSimpleName();
-									debug("kryonet", this + " received UDP: " + objectString);
-								}
-								connection.notifyReceived(object);
+								if (object == null)
+									continue;
+								handleUDP(object, connection);
 							}
 						}
 						if ((ops & SelectionKey.OP_WRITE) == SelectionKey.OP_WRITE) connection.tcp.writeOperation();
@@ -375,11 +444,12 @@ public class Client<T extends Connection> implements EndPoint<T> {
 		if (connection.isConnected) {
 			long time = System.currentTimeMillis();
 			if (connection.tcp.isTimedOut(time)) {
-				if (DEBUG) debug("kryonet", this + " timed out.");
+				if (DEBUG) debug(TAG, this + " timed out.");
 				close();
 			} else
 				keepAlive();
-			if (connection.isIdle()) connection.notifyIdle();
+			if (isIdle())
+				handleOnIdle(connection);
 		}
 	}
 
@@ -387,12 +457,12 @@ public class Client<T extends Connection> implements EndPoint<T> {
 	void keepAlive () {
 		if (!connection.isConnected) return;
 		long time = System.currentTimeMillis();
-		if (connection.tcp.needsKeepAlive(time)) connection.sendTCP(FrameworkMessage.keepAlive);
-		if (connection.udp != null && udpRegistered && connection.udp.needsKeepAlive(time)) connection.sendUDP(FrameworkMessage.keepAlive);
+		if (connection.tcp.needsKeepAlive(time)) connection.sendObjectTCP(FrameworkMessage.keepAlive);
+		if (connection.udp != null && udpRegistered && connection.udp.needsKeepAlive(time)) connection.sendObjectUDP(FrameworkMessage.keepAlive);
 	}
 
 	public void run () {
-		if (TRACE) trace("kryonet", "Client thread started.");
+		if (TRACE) trace(TAG, "Client thread started.");
 		shutdown = false;
 		while (!shutdown) {
 			try {
@@ -400,29 +470,29 @@ public class Client<T extends Connection> implements EndPoint<T> {
 			} catch (IOException ex) {
 				if (TRACE) {
 					if (connection.isConnected)
-						trace("kryonet", "Unable to update connection: " + this, ex);
+						trace(TAG, "Unable to update connection: " + this, ex);
 					else
-						trace("kryonet", "Unable to update connection.", ex);
+						trace(TAG, "Unable to update connection.", ex);
 				} else if (DEBUG) {
 					if (connection.isConnected)
-						debug("kryonet", this + " update: " + ex.getMessage());
+						debug(TAG, this + " update: " + ex.getMessage());
 					else
-						debug("kryonet", "Unable to update connection: " + ex.getMessage());
+						debug(TAG, "Unable to update connection: " + ex.getMessage());
 				}
 				close();
 			} catch (KryoNetException ex) {
 				connection.lastProtocolError = ex;
 				if (ERROR) {
 					if (connection.isConnected)
-						error("kryonet", "Error updating connection: " + this, ex);
+						error(TAG, "Error updating connection: " + this, ex);
 					else
-						error("kryonet", "Error updating connection.", ex);
+						error(TAG, "Error updating connection.", ex);
 				}
 				close();
 				throw ex;
 			}
 		}
-		if (TRACE) trace("kryonet", "Client thread stopped.");
+		if (TRACE) trace(TAG, "Client thread stopped.");
 	}
 
 	public void start () {
@@ -442,7 +512,7 @@ public class Client<T extends Connection> implements EndPoint<T> {
 	public void stop () {
 		if (shutdown) return;
 		close();
-		if (TRACE) trace("kryonet", "Client thread stopping.");
+		if (TRACE) trace(TAG, "Client thread stopping.");
 		shutdown = true;
 		selector.wakeup();
 	}
@@ -462,33 +532,15 @@ public class Client<T extends Connection> implements EndPoint<T> {
 		}
 	}
 
-	/** Releases the resources used by this client, which may no longer be used. */
-	public void dispose () throws IOException {
-		close();
-		selector.close();
-	}
-
-	public void addListener (Listener<? super T> listener) {
-		listeners.add(listener);
-		if (TRACE) trace("kryonet", "Client listener added.");
-	}
-
-	public void removeListener (Listener<? super T> listener) {
-		listeners.add(listener);
-		if (TRACE) trace("kryonet", "Client listener removed.");
-	}
 
 	/** An empty object will be sent if the UDP connection is inactive more than the specified milliseconds. Network hardware may
 	 * keep a translation table of inside to outside IP addresses and a UDP keep alive keeps this table entry from expiring. Set to
 	 * zero to disable. Defaults to 19000. */
 	public void setKeepAliveUDP (int keepAliveMillis) {
-		if (connection.udp == null) throw new IllegalStateException("Not connected via UDP.");
+		if (connection.udp == null) throw new IllegalStateException("Not onConnected via UDP.");
 		connection.udp.keepAliveMillis = keepAliveMillis;
 	}
 
-	public Thread getUpdateThread () {
-		return updateThread;
-	}
 
 	private void broadcast (int udpPort, DatagramSocket socket) throws IOException {
 		ByteBuffer dataBuffer = ByteBuffer.allocate(64);
@@ -512,7 +564,7 @@ public class Client<T extends Connection> implements EndPoint<T> {
 				}
 			}
 		}
-		if (DEBUG) debug("kryonet", "Broadcasted host discovery on port: " + udpPort);
+		if (DEBUG) debug(TAG, "Broadcasted host discovery on port: " + udpPort);
 	}
 
 	/** Broadcasts a UDP message on the LAN to discover any running servers. The address of the first server to respond is returned.
@@ -529,14 +581,14 @@ public class Client<T extends Connection> implements EndPoint<T> {
 			try {
 				socket.receive(packet);
 			} catch (SocketTimeoutException ex) {
-				if (INFO) info("kryonet", "Host discovery timed out.");
+				if (INFO) info(TAG, "Host discovery timed out.");
 				return null;
 			}
-			if (INFO) info("kryonet", "Discovered server: " + packet.getAddress());
+			if (INFO) info(TAG, "Discovered server: " + packet.getAddress());
 			discoveryHandler.onDiscoveredHost(packet, getKryo());
 			return packet.getAddress();
 		} catch (IOException ex) {
-			if (ERROR) error("kryonet", "Host discovery failed.", ex);
+			if (ERROR) error(TAG, "Host discovery failed.", ex);
 			return null;
 		} finally {
 			if (socket != null) socket.close();
@@ -559,15 +611,15 @@ public class Client<T extends Connection> implements EndPoint<T> {
 				try {
 					socket.receive(packet);
 				} catch (SocketTimeoutException ex) {
-					if (INFO) info("kryonet", "Host discovery timed out.");
+					if (INFO) info(TAG, "Host discovery timed out.");
 					return hosts;
 				}
-				if (INFO) info("kryonet", "Discovered server: " + packet.getAddress());
+				if (INFO) info(TAG, "Discovered server: " + packet.getAddress());
 				discoveryHandler.onDiscoveredHost(packet, getKryo());
 				hosts.add(packet.getAddress());
 			}
 		} catch (IOException ex) {
-			if (ERROR) error("kryonet", "Host discovery failed.", ex);
+			if (ERROR) error(TAG, "Host discovery failed.", ex);
 			return hosts;
 		} finally {
 			if (socket != null) socket.close();
@@ -591,25 +643,47 @@ public class Client<T extends Connection> implements EndPoint<T> {
 		connection.updateReturnTripTime();
 	}
 
-	public void sendTCP(Object msg) {
-		connection.sendTCP(msg);
+
+	public int send(MessageToServer msg){
+		if(msg.isReliable()){
+			return sendTCP(msg);
+		} else {
+			return sendUDP(msg);
+		}
 	}
 
-	public void sendUDP(Object msg){
-		connection.sendUDP(msg);
+	public int sendTCP(MessageToServer msg) {
+		return connection.sendTCP(msg);
+	}
+
+	public int sendUDP(MessageToServer msg){
+		return connection.sendUDP(msg);
 	}
 
 
 	// Factory methods
-	public static Client<Connection> createKryoClient() {
-		return new Client<>(new Connection());
+	public static Client<ServerConnection> createKryoClient() {
+		return new Client<>(createDefaultConnection());
 	}
 
-	public static Client<Connection> createKryoClient(int writeBufferSize, int objectBufferSize) {
-		return new Client<>(new Connection(), writeBufferSize, objectBufferSize);
+	public static Client<ServerConnection> createKryoClient(int writeBufferSize, int objectBufferSize) {
+		return new Client<>(createDefaultConnection(), writeBufferSize, objectBufferSize);
 	}
 
-	public static Client<Connection> createClient(int writeBufferSize, int objectBufferSize, Serialization format) {
-		return new Client<>(new Connection(), writeBufferSize, objectBufferSize, format);
+	public static Client<ServerConnection> createClient(int writeBufferSize, int objectBufferSize, Serialization format) {
+		return new Client<>(createDefaultConnection(), writeBufferSize, objectBufferSize, format);
+	}
+
+
+	public static ServerConnection createDefaultConnection(){
+		ServerConnection con = new ServerConnection();
+		con.setName("Server");
+		return  con;
+	}
+
+
+
+	public String getTag(){
+		return "KryoClient";
 	}
 }

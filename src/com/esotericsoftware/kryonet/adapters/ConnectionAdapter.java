@@ -1,17 +1,14 @@
 package com.esotericsoftware.kryonet.adapters;
 
 import com.esotericsoftware.kryonet.Connection;
+import com.esotericsoftware.kryonet.Listener;
+import com.esotericsoftware.minlog.Log;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import static com.esotericsoftware.minlog.Log.*;
 
 /**
  * This class is the abstract class version of Listener, similar to the
@@ -22,71 +19,36 @@ import static com.esotericsoftware.minlog.Log.*;
  *
  * Created by Evan on 6/9/16.
  */
-public abstract class ConnectionAdapter<T extends Connection> implements Listener<T> {
+public class ConnectionAdapter<C extends Connection> implements Listener<C> {
+
 
     @Override
-    public void connected(T connection) {
-
-    }
-
-    @Override
-    public void disconnected(T connection) {
-
+    public void onConnected(C connection) {
+        Log.debug("kryonet", "Connected with " + connection);
     }
 
     @Override
-    public void received(T connection, Object object) {
+    public void onDisconnected(C connection) {
+        Log.debug("kryonet", "Disconnected with " + connection);
+    }
+
+
+    @Override
+    public void onIdle(C connection) {
 
     }
 
     @Override
-    public void idle(T connection) {
-
+    public void received(C connection, Object msg){
     }
 
 
 
 
-    /** Uses reflection to called "received(Connection, XXX)" on the listener, where XXX is the received object type. Note this
-     * class uses a HashMap lookup and (cached) reflection, so is not as efficient as writing a series of "instanceof" statements. */
-    static public class ReflectionListener<T extends Connection> extends ConnectionAdapter<T> {
-        private final HashMap<Class, Method> classToMethod = new HashMap<>();
-
-        @Override
-        public void received (Connection connection, Object object) {
-            Class type = object.getClass();
-            Method method = classToMethod.get(type);
-            if (method == null) {
-                if (classToMethod.containsKey(type)) return; // Only fail on the first attempt to find the method.
-                try {
-                    method = getClass().getMethod("received", Connection.class, type);
-                    method.setAccessible(true);
-                } catch (SecurityException ex) {
-                    if (ERROR) error("kryonet", "Unable to access method: received(Connection, " + type.getName() + ")", ex);
-                    return;
-                } catch (NoSuchMethodException ex) {
-                    if (DEBUG)
-                        debug("kryonet",
-                                "Unable to find listener method: " + getClass().getName() + "#received(Connection, " + type.getName() + ")");
-                    return;
-                } finally {
-                    classToMethod.put(type, method);
-                }
-            }
-            try {
-                method.invoke(this, connection, object);
-            } catch (Throwable ex) {
-                if (ex instanceof InvocationTargetException && ex.getCause() != null) ex = ex.getCause();
-                if (ex instanceof RuntimeException) throw (RuntimeException)ex;
-                throw new RuntimeException("Error invoking method: " + getClass().getName() + "#received(Connection, "
-                        + type.getName() + ")", ex);
-            }
-        }
-    }
 
     /** Wraps a listener and queues notifications as {@link Runnable runnables}. This allows the runnables to be processed on a
      * different thread, preventing the connection's update thread from being blocked. */
-    static public abstract class QueuedListener<T extends Connection> extends ConnectionAdapter<T> {
+    public static abstract class QueuedListener<T extends Connection> extends ConnectionAdapter<T> {
         final Listener<T> listener;
 
         public QueuedListener (Listener<T> listener) {
@@ -95,37 +57,38 @@ public abstract class ConnectionAdapter<T extends Connection> implements Listene
         }
 
         @Override
-        public void connected (final T connection) {
+        public void onConnected(final T connection) {
             queue(new Runnable() {
                 public void run () {
-                    listener.connected(connection);
+                    listener.onConnected(connection);
                 }
             });
         }
 
         @Override
-        public void disconnected (final T connection) {
+        public void onDisconnected(final T connection) {
             queue(new Runnable() {
                 public void run () {
-                    listener.disconnected(connection);
+                    listener.onDisconnected(connection);
                 }
             });
         }
 
         @Override
-        public void received (final T connection, final Object object) {
+        public void received(T connection, Object msg){
             queue(new Runnable() {
                 public void run () {
-                    listener.received(connection, object);
+                    listener.received(connection, msg);
                 }
             });
         }
 
+
         @Override
-        public void idle (final T connection) {
+        public void onIdle(final T connection) {
             queue(new Runnable() {
                 public void run () {
-                    listener.idle(connection);
+                    listener.onIdle(connection);
                 }
             });
         }
@@ -134,16 +97,16 @@ public abstract class ConnectionAdapter<T extends Connection> implements Listene
     }
 
     /** Wraps a listener and processes notification events on a separate thread. */
-    static public class ThreadedListener<T extends Connection> extends QueuedListener<T> {
-        protected final ExecutorService threadPool;
+    public static class ThreadedListener<T extends Connection> extends QueuedListener<T> {
+        protected final Executor threadPool;
 
         /** Creates a single thread to process notification events. */
         public ThreadedListener (Listener<T> listener) {
             this(listener, Executors.newFixedThreadPool(1));
         }
 
-        /** Uses the specified threadPool to process notification events. */
-        public ThreadedListener (Listener<T> listener, ExecutorService threadPool) {
+        /** Uses the specified executor to process notification events.*/
+        public ThreadedListener (Listener<T> listener, Executor threadPool) {
             super(listener);
             if (threadPool == null) throw new IllegalArgumentException("threadPool cannot be null.");
             this.threadPool = threadPool;
@@ -158,7 +121,7 @@ public abstract class ConnectionAdapter<T extends Connection> implements Listene
     /** Delays the notification of the wrapped listener to simulate lag on incoming objects. Notification events are processed on a
      * separate thread after a delay. Note that only incoming objects are delayed. To delay outgoing objects, use a LagListener at
      * the other end of the connection. */
-    static public class LagListener<T extends Connection> extends QueuedListener<T> {
+    public static class LagListener<T extends Connection> extends QueuedListener<T> {
         private final ScheduledExecutorService threadPool;
         private final int lagMillisMin, lagMillisMax;
         final LinkedList<Runnable> runnables = new LinkedList<>();

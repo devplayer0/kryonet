@@ -3,7 +3,9 @@
 .*.swp
 .DS_STORE
 
+classes/
 bin/
 target/
 .idea/
 *.iml
+*.class

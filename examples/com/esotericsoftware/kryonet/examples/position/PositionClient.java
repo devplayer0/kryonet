@@ -73,7 +73,7 @@ public class PositionClient {
 		String host = ui.inputHost();
 		try {
 			client.connect(5000, host, Network.port);
-			// Server communication after connection can go here, or in Listener#connected().
+			// Server communication after connection can go here, or in Listener#onConnected().
 		} catch (IOException ex) {
 			ex.printStackTrace();
 		}

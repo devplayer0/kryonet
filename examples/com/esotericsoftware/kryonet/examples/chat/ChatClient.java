@@ -93,7 +93,7 @@ public class ChatClient {
 
 		// All the ugly Swing stuff is hidden in ChatFrame so it doesn't clutter the KryoNet example code.
 		chatFrame = new ChatFrame(host);
-		// This listener is called when the send button is clicked.
+		// This listener is called when the sendRaw button is clicked.
 		chatFrame.setSendListener(new Runnable() {
 			public void run () {
 				ChatMessage chatMessage = new ChatMessage();
@@ -115,7 +115,7 @@ public class ChatClient {
 			public void run () {
 				try {
 					client.connect(5000, host, Network.port);
-					// Server communication after connection can go here, or in Listener#connected().
+					// Server communication after connection can go here, or in Listener#onConnected().
 				} catch (IOException ex) {
 					ex.printStackTrace();
 					System.exit(1);

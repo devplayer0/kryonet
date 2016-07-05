@@ -20,46 +20,119 @@
 package com.esotericsoftware.kryonet;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryonet.adapters.Listener;
+import com.esotericsoftware.kryonet.messages.Message;
 import com.esotericsoftware.kryonet.serializers.KryoSerialization;
 import com.esotericsoftware.kryonet.serializers.Serialization;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.channels.Selector;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+import static com.esotericsoftware.minlog.Log.TRACE;
+import static com.esotericsoftware.minlog.Log.trace;
+
 
 /** Represents the local end point of a connection.
  * @author Nathan Sweet <misc@n4te.com> */
-public interface EndPoint<T extends Connection> extends Runnable, Closeable {
+public abstract class EndPoint<FM extends Message, C extends Connection<FM>> implements Runnable, Closeable {
+
+	protected Thread updateThread;
+	protected int emptySelects;
+	protected final Object updateLock = new Object();
+	protected Selector selector;
+
+	protected final List<Listener<? super C>> listeners = new CopyOnWriteArrayList<>();
+
+
+	protected final String TAG = getTag();
+
+	protected abstract String getTag();
+
+
+
+	protected boolean isSelectReady(int timeout) throws IOException {
+		updateThread = Thread.currentThread();
+		synchronized (updateLock) { // Blocks to avoid a select while the selector is used to bind the server connection.
+		}
+
+		long startTime = System.currentTimeMillis();
+		int select = timeout > 0 ? selector.select(timeout) : selector.selectNow();
+
+
+		if (select == 0) {
+			++emptySelects;
+			if (emptySelects == 100) {
+				emptySelects = 0;
+				// NIO freaks and returns immediately with 0 sometimes, so try to keep from hogging the CPU.
+				long elapsedTime = System.currentTimeMillis() - startTime;
+				try {
+					if (elapsedTime < 25)
+						Thread.sleep(25 - elapsedTime);
+				} catch (InterruptedException ex) {
+				}
+			}
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+
+	/** Releases the resources used by this client, which may no longer be used. */
+	public void dispose () throws IOException {
+		close();
+		selector.close();
+	}
+
+
+
+
+
+	public void addListener (Listener<? super C> listener) {
+		if (listener == null) throw new IllegalArgumentException("listener cannot be null.");
+		listeners.add(listener);
+		if (TRACE) trace(TAG, "Added Listener " + listener.getClass().getName());
+	}
+
+	public void removeListener (Listener<? super C> listener) {
+		if (listener == null) throw new IllegalArgumentException("listener cannot be null.");
+		listeners.remove(listener);
+		if (TRACE) trace(TAG, "Removed Listener: " + listener.getClass().getName());
+	}
+
+
 	/** Gets the serialization instance that will be used to serialize and deserialize objects. */
-	public Serialization getSerialization ();
-
-	/** If the listener already exists, it is not added again. */
-	public void addListener (Listener<? super T> listener);
-
-	public void removeListener (Listener<? super T> listener);
+	public abstract Serialization getSerialization();
 
 	/** Continually updates this end point until {@link #stop()} is called. */
-	public void run ();
+	public abstract void run();
 
 	/** Starts a new thread that calls {@link #run()}. */
-	public void start ();
+	public abstract void start();
 
 	/** Closes this end point and causes {@link #run()} to return. */
-	public void stop ();
+	public abstract void stop();
 
 	/** @see Client
 	 * @see Server */
-	public void close ();
+	public abstract void close();
 
 	/** @see Client#update(int)
 	 * @see Server#update(int) */
-	public void update (int timeout) throws IOException;
+	public abstract void update(int timeout) throws IOException;
 
 	/** Returns the last thread that called {@link #update(int)} for this end point. This can be useful to detect when long running
 	 * code will be run on the update thread. */
-	public Thread getUpdateThread ();
+	public Thread getUpdateThread () {
+		return updateThread;
+	}
 
 	/** Gets the Kryo instance that will be used to serialize and deserialize objects. This is only valid if
 	 * {@link KryoSerialization} is being used, which is the default. */
-	public Kryo getKryo ();
+	public abstract Kryo getKryo();
+
+
+
 }

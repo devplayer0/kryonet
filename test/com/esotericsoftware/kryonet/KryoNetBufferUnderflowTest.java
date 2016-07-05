@@ -20,6 +20,7 @@
 package com.esotericsoftware.kryonet;
 
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+import com.esotericsoftware.kryonet.utils.StringMessage;
 
 import java.io.IOException;
 import java.lang.Thread.UncaughtExceptionHandler;
@@ -38,12 +39,13 @@ public class KryoNetBufferUnderflowTest {
 		server.start();
 		System.out.println("Server listening on port " + port);
 
+
 		// Creating client
-		final Client client = Client.createKryoClient(writeBufferSize, objectBufferSize);
+		final Client<ServerConnection> client = Client.createKryoClient(writeBufferSize, objectBufferSize);
 		client.start();
-		client.addListener(new ConnectionAdapter() {
+		client.addListener(new ConnectionAdapter<ServerConnection>() {
 			@Override
-			public void received (Connection connection, Object object) {
+			public void received (ServerConnection connection, Object object) {
 				if (object instanceof String) {
 					System.out.println("Received: " + object);
 					received.set(true);
@@ -52,7 +54,7 @@ public class KryoNetBufferUnderflowTest {
 			}
 		});
 		client.connect(5000, "localhost", port);
-		System.out.println("Client connected");
+		System.out.println("Client onConnected");
 
 		// Catching exception
 		Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
@@ -67,9 +69,13 @@ public class KryoNetBufferUnderflowTest {
 			}
 		});
 
+		server.getKryo().register(StringMessage.class);
+		client.getKryo().register(StringMessage.class);
+
+
 		// Sending small messages
 		for (int i = 0; i < 5; i++) {
-			String smallMessage = "RandomStringUtils.randomAlphanumeric(256)";
+			StringMessage smallMessage = new StringMessage("RandomStringUtils.randomAlphanumeric(256)");
 			System.out.println("Sending: " + smallMessage);
 			received.set(false);
 			server.sendToAllTCP(smallMessage);
@@ -79,8 +85,8 @@ public class KryoNetBufferUnderflowTest {
 		}
 
 		// Sending large message
-		String bigMessage = "RandomStringUtils.randomAlphanumeric(532)RandomStringUtils.randomAlphanumeric(532)RandomStringUtils.randomAlphanumeric(532)RandomStringUtils.randomAlphanumeric(532)RandomStringUtils.randomAlphanumeric(532)RandomStringUtils.randomAlphanumeric(532)RandomStringUtils.randomAlphanumeric(532)";
-		bigMessage = bigMessage + bigMessage + bigMessage + bigMessage + bigMessage + bigMessage + bigMessage;
+		StringMessage bigMessage = new StringMessage("RandomStringUtils.randomAlphanumeric(532)RandomStringUtils.randomAlphanumeric(532)RandomStringUtils.randomAlphanumeric(532)RandomStringUtils.randomAlphanumeric(532)RandomStringUtils.randomAlphanumeric(532)RandomStringUtils.randomAlphanumeric(532)RandomStringUtils.randomAlphanumeric(532)");
+		bigMessage.msg = bigMessage.msg + bigMessage.msg + bigMessage.msg + bigMessage.msg + bigMessage.msg + bigMessage.msg + bigMessage.msg;
 		System.out.println("Sending: " + bigMessage);
 		received.set(false);
 		server.sendToAllTCP(bigMessage);

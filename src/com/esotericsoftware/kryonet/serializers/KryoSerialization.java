@@ -22,7 +22,7 @@ package com.esotericsoftware.kryonet.serializers;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.ByteBufferInput;
 import com.esotericsoftware.kryo.io.ByteBufferOutput;
-import com.esotericsoftware.kryonet.FrameworkMessage.*;
+import com.esotericsoftware.kryonet.messages.FrameworkMessage.*;
 
 import java.nio.ByteBuffer;
 

@@ -20,6 +20,7 @@
 package com.esotericsoftware.kryonet;
 
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+import com.esotericsoftware.kryonet.v2.KryoNetTestCase;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -56,22 +57,22 @@ public class MultipleServerTest extends KryoNetTestCase {
 
 		// ----
 
-		Client client1 = Client.createKryoClient(16384, 8192);
+		Client<ServerConnection> client1 = Client.createKryoClient(16384, 8192);
 		client1.getKryo().register(String[].class);
 		startEndPoint(client1);
 		client1.addListener(new ConnectionAdapter<Connection>() {
-			public void connected (Connection connection) {
-				connection.sendTCP("client1");
+			public void onConnected(Connection connection) {
+				connection.sendObjectTCP("client1");
 			}
 		});
 		client1.connect(5000, host, tcpPort, udpPort);
 
-		Client client2 = Client.createKryoClient(16384, 8192);
+		Client<ServerConnection> client2 = Client.createKryoClient(16384, 8192);
 		client2.getKryo().register(String[].class);
 		startEndPoint(client2);
 		client2.addListener(new ConnectionAdapter<Connection>() {
-			public void connected (Connection connection) {
-				connection.sendTCP("client2");
+			public void onConnected(Connection connection) {
+				connection.sendObjectTCP("client2");
 			}
 		});
 		client2.connect(5000, host, tcpPort + 1, udpPort + 1);

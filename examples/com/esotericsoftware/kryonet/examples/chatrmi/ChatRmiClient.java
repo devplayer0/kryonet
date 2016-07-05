@@ -80,7 +80,7 @@ public class ChatRmiClient {
 		chatFrame = new ChatFrame(host);
 		// Register the chat frame so the server can call methods on it.
 		new ObjectSpace(client).register(Network.CHAT_FRAME, chatFrame);
-		// This listener is called when the send button is clicked.
+		// This listener is called when the sendRaw button is clicked.
 		chatFrame.setSendListener(new Runnable() {
 			public void run () {
 				player.sendMessage(chatFrame.getSendText());
@@ -100,7 +100,7 @@ public class ChatRmiClient {
 			public void run () {
 				try {
 					client.connect(5000, host, Network.port);
-					// Server communication after connection can go here, or in Listener#connected().
+					// Server communication after connection can go here, or in Listener#onConnected().
 					player.registerName(name);
 				} catch (IOException ex) {
 					ex.printStackTrace();

@@ -20,6 +20,8 @@
 package com.esotericsoftware.kryonet;
 
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+import com.esotericsoftware.kryonet.utils.StringMessage;
+import com.esotericsoftware.kryonet.v2.KryoNetTestCase;
 
 import java.io.IOException;
 import java.util.List;
@@ -49,18 +51,19 @@ public class MultipleThreadTest extends KryoNetTestCase {
 		// ----
 
 		for (int i = 0; i < clients; i++) {
-			Client client = Client.createKryoClient(16384, 8192);
+			Client<ServerConnection> client = Client.createKryoClient(16384, 8192);
 			client.getKryo().register(String[].class);
 			startEndPoint(client);
-			client.addListener(new ConnectionAdapter() {
+			client.addListener(new ConnectionAdapter<ServerConnection>() {
 				int received;
 
-				public void received (Connection connection, Object object) {
+				@Override
+				public void received (ServerConnection connection, Object object) {
 					if (object instanceof String) {
 						received++;
 						if (received == messageCount * threads) {
 							for (int i = 0; i < messageCount; i++) {
-								connection.sendTCP("message" + i);
+								connection.sendTCP(new StringMessage("message" + i));
 								try {
 									Thread.sleep(50);
 								} catch (InterruptedException ignored) {
@@ -76,10 +79,10 @@ public class MultipleThreadTest extends KryoNetTestCase {
 		for (int i = 0; i < threads; i++) {
 			new Thread() {
 				public void run () {
-					List<Connection> connections = server.getConnections();
+					List<ClientConnection> connections = server.getConnections();
 					for (int i = 0; i < messageCount; i++) {
 						for (int ii = 0, n = connections.size(); ii < n; ii++)
-							connections.get(ii).sendTCP("message" + i);
+							connections.get(ii).sendTCP(new StringMessage("message" + i));
 						try {
 							Thread.sleep(sleepMillis);
 						} catch (InterruptedException ignored) {

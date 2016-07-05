@@ -193,24 +193,24 @@ public class ObjectIntMap<K> {
 		do {
 			// Replace the key and value for one of the hashes.
 			switch (ThreadLocalRandom.current().nextInt(3)) {
-			case 0:
-				evictedKey = key1;
-				evictedValue = valueTable[index1];
-				keyTable[index1] = insertKey;
-				valueTable[index1] = insertValue;
-				break;
-			case 1:
-				evictedKey = key2;
-				evictedValue = valueTable[index2];
-				keyTable[index2] = insertKey;
-				valueTable[index2] = insertValue;
-				break;
-			default:
-				evictedKey = key3;
-				evictedValue = valueTable[index3];
-				keyTable[index3] = insertKey;
-				valueTable[index3] = insertValue;
-				break;
+				case 0:
+					evictedKey = key1;
+					evictedValue = valueTable[index1];
+					keyTable[index1] = insertKey;
+					valueTable[index1] = insertValue;
+					break;
+				case 1:
+					evictedKey = key2;
+					evictedValue = valueTable[index2];
+					keyTable[index2] = insertKey;
+					valueTable[index2] = insertValue;
+					break;
+				default:
+					evictedKey = key3;
+					evictedValue = valueTable[index3];
+					keyTable[index3] = insertKey;
+					valueTable[index3] = insertValue;
+					break;
 			}
 
 			// If the evicted key hashes to an empty bucket, put it there and stop.

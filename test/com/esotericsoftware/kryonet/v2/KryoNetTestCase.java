@@ -17,25 +17,53 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryonet;
+package com.esotericsoftware.kryonet.v2;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryonet.*;
+import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
 import com.esotericsoftware.minlog.Log;
 import com.esotericsoftware.minlog.Log.Logger;
 import junit.framework.TestCase;
+import net.jodah.concurrentunit.Waiter;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.junit.After;
+import org.junit.Before;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ThreadLocalRandom;
 
 abstract public class KryoNetTestCase extends TestCase {
-	static public String host = "localhost";
-	static public int tcpPort = 54555, udpPort = 54777;
+	public static final String host = "localhost";
+
+
+	public int tcpPort = ThreadLocalRandom.current().nextInt(10_000, 20_000);
+	public int udpPort = ThreadLocalRandom.current().nextInt(20_000, 30_000);
+
+
+
+
+
+	protected Server server = new Server(Short.MAX_VALUE,Short.MAX_VALUE);
+
+	protected Client<ServerConnection> client = Client.createKryoClient(Short.MAX_VALUE, Short.MAX_VALUE);
+
+	protected ClientConnection clientRef;
+
+
+
 
 	private ArrayList<Thread> threads = new ArrayList<>();
 	ArrayList<EndPoint> endPoints = new ArrayList<>();
-	private Timer timer;
+	private Timer timer = new Timer();
 	boolean fail;
+
+	protected Waiter test = new Waiter();
 
 	public KryoNetTestCase () {
 		// Log.TRACE();
@@ -46,20 +74,53 @@ abstract public class KryoNetTestCase extends TestCase {
 				super.log(level, category, message, ex);
 			}
 		});
+
+		Log.INFO();
 	}
 
+
+	protected void reg(Kryo k, Class<?>... types){
+		for(Class<?> c : types){
+			k.register(c);
+		}
+	}
+	protected void reg(Kryo k, Kryo k2, Class<?>... types){
+		for(Class<?> c : types){
+			k.register(c);
+			k2.register(c);
+		}
+	}
+
+
+	@Before
+	@Override
 	protected void setUp () throws Exception {
 		System.out.println("---- " + getClass().getSimpleName());
 		timer = new Timer();
+
+		server.addListener(new ConnectionAdapter<ClientConnection>() {
+			@Override
+			public void onConnected(ClientConnection connection) {
+				clientRef = connection;
+			}
+		});
 	}
 
+	@After
+	@Override
 	protected void tearDown () throws Exception {
+		stopEndPoints();
+		Log.INFO();
 		timer.cancel();
 	}
 
 	public void startEndPoint (EndPoint endPoint) {
 		endPoints.add(endPoint);
 		Thread thread = new Thread(endPoint, endPoint.getClass().getSimpleName());
+		thread.setUncaughtExceptionHandler((t,e) -> {
+			e.printStackTrace();
+			test.fail(e);
+		});
 		threads.add(thread);
 		thread.start();
 	}
@@ -110,6 +171,65 @@ abstract public class KryoNetTestCase extends TestCase {
 		try {
 			Thread.sleep(1000);
 		} catch (InterruptedException ignored) {
+		}
+	}
+
+
+	public void start(Client... clients){
+		for(Client client : clients) {
+			startEndPoint(client);
+			try {
+				client.connect(1000, host, tcpPort, udpPort);
+			} catch (IOException e) {
+				test.fail(e);
+				e.printStackTrace();
+			}
+		}
+	}
+
+
+	public void start(Server server, Client... clients) {
+		startEndPoint(server);
+		try {
+			server.bind(tcpPort, udpPort);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		start(clients);
+	}
+
+
+	public static void sleep(int time){
+		try {
+			Thread.sleep(time);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			Thread.currentThread().interrupt();
+		}
+	}
+
+
+	public static class Instance extends BaseMatcher<Object> {
+
+		private final Class<?> expectedType;
+		public Instance(Class<?> expectedType){
+			this.expectedType = expectedType;
+		}
+
+
+		public static Instance Of(Class<?> type){
+			return new Instance(type);
+		}
+
+		@Override
+		public boolean matches(Object item) {
+			return expectedType.isInstance(item);
+		}
+
+		@Override
+		public void describeTo(Description description) {
+
 		}
 	}
 }

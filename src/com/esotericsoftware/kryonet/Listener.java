@@ -17,29 +17,24 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryonet.adapters;
-
-import com.esotericsoftware.kryonet.Client;
-import com.esotericsoftware.kryonet.Connection;
-import com.esotericsoftware.kryonet.Server;
+package com.esotericsoftware.kryonet;
 
 /** Used to be notified about connection events. */
 public interface Listener<T extends Connection> {
-	/** Called when the remote end has been connected. This will be invoked before any objects are received by
-	 * {@link #received(Connection, Object)}. This will be invoked on the same thread as {@link Client#update(int)} and
+	/** Called when the remote end has been onConnected. This will be invoked before any objects are received.
+	 * This will be invoked on the same thread as {@link Client#update(int)} and
 	 * {@link Server#update(int)}. This method should not block for long periods as other network activity will not be processed
 	 * until it returns. */
-	public void connected (T connection) ;
+	void onConnected(T connection) ;
 
-	/** Called when the remote end is no longer connected. There is no guarantee as to what thread will invoke this method. */
-	public void disconnected (T connection) ;
+	/** Called when the remote end is no longer onConnected. There is no guarantee as to what thread will invoke this method. */
+	void onDisconnected(T connection) ;
 
-	/** Called when an object has been received from the remote end of the connection. This will be invoked on the same thread as
-	 * {@link Client#update(int)} and {@link Server#update(int)}. This method should not block for long periods as other network
-	 * activity will not be processed until it returns. */
-	public void received (T connection, Object object) ;
+	/** Called when the connection is below the {@link Connection#setIdleThreshold(float) onIdle threshold}. */
+	void onIdle(T connection) ;
 
-	/** Called when the connection is below the {@link Connection#setIdleThreshold(float) idle threshold}. */
-	public void idle (T connection) ;
+	void received(T connection, Object msg);
+
+
 
 }

@@ -19,19 +19,24 @@
 
 package com.esotericsoftware.kryonet.util;
 
+import com.esotericsoftware.kryonet.Connection;
+import com.esotericsoftware.kryonet.EndPoint;
+import com.esotericsoftware.kryonet.messages.Message;
+
 import java.io.IOException;
 import java.io.InputStream;
 
-abstract public class InputStreamSender extends TcpIdleSender {
+abstract public class InputStreamSender<M extends Message, C extends Connection<M>> extends TcpIdleSender<M> {
 	private final InputStream input;
 	private final byte[] chunk;
 
-	public InputStreamSender (InputStream input, int chunkSize) {
+	public InputStreamSender (EndPoint<M, Connection<M>> end, InputStream input, int chunkSize) {
+		super(end);
 		this.input = input;
 		chunk = new byte[chunkSize];
 	}
 
-	protected final Object next () {
+	protected final M next () {
 		try {
 			int total = 0;
 			while (total < chunk.length) {
@@ -50,5 +55,5 @@ abstract public class InputStreamSender extends TcpIdleSender {
 		return next(chunk);
 	}
 
-	abstract protected Object next (byte[] chunk);
+	abstract protected M next (byte[] chunk);
 }
