@@ -1,4 +1,4 @@
-package com.esotericsoftware.kryonet.messages;
+package com.esotericsoftware.kryonet.network.messages;
 
 /**
  * Created by Evan on 6/17/16.

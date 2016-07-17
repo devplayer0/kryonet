@@ -1,7 +1,7 @@
-package com.esotericsoftware.kryonet;
+package com.esotericsoftware.kryonet.network;
 
 import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryonet.messages.Message;
+import com.esotericsoftware.kryonet.network.messages.Message;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -15,14 +15,14 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * Created by Evan on 6/16/16.
  */
-public abstract class Query<T> implements Message {
+public abstract class Query<T, C extends Connection> implements Message {
     private static final AtomicInteger counter = new AtomicInteger(0);
 
     @JsonTypeInfo( use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.WRAPPER_OBJECT )
     public T result;
     public final int id;
 
-    private transient Connection origin;
+    private transient C origin;
 
 
     protected Query(){
@@ -40,14 +40,14 @@ public abstract class Query<T> implements Message {
 
 
 
-    void setOrigin(Connection sender){
+    void setOrigin(C sender){
         if(origin != null)
             throw new KryoException("Origin is already set");
         origin = sender;
     }
 
 
-    public Connection getSender(){
+    public C getSender(){
         return origin;
     }
 
@@ -56,7 +56,7 @@ public abstract class Query<T> implements Message {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        Query<?> query = (Query<?>) o;
+        Query<?, ?> query = (Query<?, ?>) o;
 
         return id == query.id;
 
@@ -65,5 +65,11 @@ public abstract class Query<T> implements Message {
     @Override
     public int hashCode() {
         return id;
+    }
+
+
+    @Override
+    public String toString(){
+        return getClass().getSimpleName() + "(" + id + ")";
     }
 }

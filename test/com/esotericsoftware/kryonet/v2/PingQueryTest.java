@@ -1,10 +1,10 @@
 package com.esotericsoftware.kryonet.v2;
 
-import com.esotericsoftware.kryonet.ClientConnection;
+import com.esotericsoftware.kryonet.network.ClientConnection;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
 import com.esotericsoftware.kryonet.adapters.RegisteredClientListener;
 import com.esotericsoftware.kryonet.adapters.RegisteredListener;
-import com.esotericsoftware.kryonet.messages.QueryToClient;
+import com.esotericsoftware.kryonet.network.messages.QueryToClient;
 import com.esotericsoftware.minlog.Log;
 
 import java.util.concurrent.Executors;

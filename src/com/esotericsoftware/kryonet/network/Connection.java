@@ -17,12 +17,15 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryonet;
+package com.esotericsoftware.kryonet.network;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryonet.messages.FrameworkMessage;
-import com.esotericsoftware.kryonet.messages.FrameworkMessage.Ping;
-import com.esotericsoftware.kryonet.messages.Message;
+import com.esotericsoftware.kryonet.adapters.Listener;
+import com.esotericsoftware.kryonet.network.cache.CachedMessage;
+import com.esotericsoftware.kryonet.network.impl.Server;
+import com.esotericsoftware.kryonet.network.messages.FrameworkMessage;
+import com.esotericsoftware.kryonet.network.messages.FrameworkMessage.Ping;
+import com.esotericsoftware.kryonet.network.messages.Message;
 import com.esotericsoftware.kryonet.serializers.Serialization;
 import com.esotericsoftware.kryonet.util.KryoNetException;
 import com.esotericsoftware.minlog.Log;
@@ -41,11 +44,11 @@ import static com.esotericsoftware.minlog.Log.*;
 
 // BOZO - Layer to handle handshake state.
 
-/** Represents a TCP and optionally a UDP connection between a {@link Client} and a {@link Server}. If either underlying connection
+/** Represents a TCP and optionally a UDP connection between a {@link AbstractClient} and a {@link Server}. If either underlying connection
  * is closed or errors, both connections are closed.
  * @author Nathan Sweet <misc@n4te.com> */
 public class Connection<MSG extends Message> {
-	protected static final ConcurrentHashMap<Query<?>, Consumer<?>> queries = new ConcurrentHashMap<>();
+	protected static final ConcurrentHashMap<Query<?,?>, Consumer<?>> queries = new ConcurrentHashMap<>();
 
 
 
@@ -97,6 +100,7 @@ public class Connection<MSG extends Message> {
 
 
 
+
 	void sendBytesTCP(ByteBuffer raw){
 		try {
 			tcp.sendRaw(raw);
@@ -125,7 +129,21 @@ public class Connection<MSG extends Message> {
 	}
 
 
+	public void send(CachedMessage<? extends MSG> msg){
+		if(msg.isReliable()){
+			sendBytesTCP(msg.cached);
+		} else {
+			sendBytesUDP(msg.cached);
+		}
+	}
 
+	public void sendTCP(CachedMessage<? extends MSG> msg){
+		sendBytesTCP(msg.cached);
+	}
+
+	public void sendUDP(CachedMessage<? extends MSG> msg){
+		sendBytesUDP(msg.cached);
+	}
 
 
 	/** Sends a Message via TCP or UDP depending on the return value of
@@ -289,7 +307,7 @@ public class Connection<MSG extends Message> {
 
 
 
-	/** Returns the local {@link Client} or {@link Server} to which this connection belongs. */
+	/** Returns the local {@link AbstractClient} or {@link Server} to which this connection belongs. */
 	public EndPoint getEndPoint () {
 		return endPoint;
 	}

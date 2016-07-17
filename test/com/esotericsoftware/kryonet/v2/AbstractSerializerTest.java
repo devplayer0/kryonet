@@ -19,11 +19,11 @@
 
 package com.esotericsoftware.kryonet.v2;
 
-import com.esotericsoftware.kryonet.Client;
-import com.esotericsoftware.kryonet.ClientConnection;
-import com.esotericsoftware.kryonet.Server;
-import com.esotericsoftware.kryonet.ServerConnection;
+import com.esotericsoftware.kryonet.network.ClientConnection;
+import com.esotericsoftware.kryonet.network.ServerConnection;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+import com.esotericsoftware.kryonet.network.impl.Client;
+import com.esotericsoftware.kryonet.network.impl.Server;
 import com.esotericsoftware.kryonet.serializers.Serialization;
 import com.esotericsoftware.kryonet.utils.DataMessage;
 import com.esotericsoftware.kryonet.utils.YesNoQuery;
@@ -89,7 +89,7 @@ public abstract class AbstractSerializerTest<T extends Serialization> extends Kr
         // ----
 
         AtomicInteger count = new AtomicInteger(0);
-        final Client<ServerConnection> client = Client.createClient(16384, 8192, serializer);
+        final Client client = new Client(16384, 8192, serializer);
         startEndPoint(client);
         client.addListener(new ConnectionAdapter<ServerConnection>() {
             @Override
@@ -144,7 +144,7 @@ public abstract class AbstractSerializerTest<T extends Serialization> extends Kr
             }
         });
 
-        final Client<ServerConnection> client = Client.createClient(16384 * 2, 8192 * 2, serializer);
+        final Client client = new Client(16384 * 2, 8192 * 2, serializer);
         startEndPoint(client);
         client.addListener(new ConnectionAdapter<ServerConnection>() {
             @Override

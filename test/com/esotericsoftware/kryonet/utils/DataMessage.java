@@ -3,7 +3,7 @@ package com.esotericsoftware.kryonet.utils;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.serializers.DefaultArraySerializers;
 import com.esotericsoftware.kryo.serializers.DefaultSerializers;
-import com.esotericsoftware.kryonet.messages.BidirectionalMessage;
+import com.esotericsoftware.kryonet.network.messages.BidirectionalMessage;
 import com.esotericsoftware.kryonet.v2.PingTest;
 
 import java.nio.charset.StandardCharsets;

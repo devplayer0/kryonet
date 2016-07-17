@@ -120,7 +120,7 @@ public class ChatRmiClient {
 		JList nameList;
 
 		public ChatFrame (String host) {
-			super("Chat RMI Client");
+			super("Chat RMI AbstractClient");
 			setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 			setSize(640, 200);
 			setLocationRelativeTo(null);

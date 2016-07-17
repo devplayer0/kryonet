@@ -1,6 +1,6 @@
 package com.esotericsoftware.kryonet.utils;
 
-import com.esotericsoftware.kryonet.messages.QueryToServer;
+import com.esotericsoftware.kryonet.network.messages.QueryToServer;
 
 /**
  * Created by Evan on 6/27/16.

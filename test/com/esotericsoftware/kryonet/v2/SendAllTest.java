@@ -1,9 +1,9 @@
 package com.esotericsoftware.kryonet.v2;
 
-import com.esotericsoftware.kryonet.Client;
-import com.esotericsoftware.kryonet.ClientConnection;
-import com.esotericsoftware.kryonet.ServerConnection;
+import com.esotericsoftware.kryonet.network.ClientConnection;
+import com.esotericsoftware.kryonet.network.ServerConnection;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+import com.esotericsoftware.kryonet.network.impl.Client;
 import com.esotericsoftware.kryonet.utils.StringMessage;
 
 import java.util.concurrent.TimeoutException;
@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SendAllTest extends KryoNetTestCase {
 
     public void testSendAllTCP() throws TimeoutException {
-        Client<ServerConnection> client2 = Client.createKryoClient();
+        Client client2 = new Client();
 
         reg(server.getKryo(), client.getKryo(), StringMessage.class);
         reg(client2.getKryo(), StringMessage.class);
@@ -60,7 +60,7 @@ public class SendAllTest extends KryoNetTestCase {
 
 
     public void testSendAllUDP() throws TimeoutException {
-        Client<ServerConnection> client2 = Client.createKryoClient();
+        Client client2 = new Client();
 
         reg(server.getKryo(), client.getKryo(), StringMessage.class);
         reg(client2.getKryo(), StringMessage.class);
@@ -110,7 +110,7 @@ public class SendAllTest extends KryoNetTestCase {
 
 
     public void testSendAllExceptTCP() throws TimeoutException {
-        Client<ServerConnection> client2 = Client.createKryoClient();
+        Client client2 = new Client();
 
         reg(server.getKryo(), client.getKryo(), StringMessage.class);
         reg(client2.getKryo(), StringMessage.class);
@@ -125,7 +125,7 @@ public class SendAllTest extends KryoNetTestCase {
             public void onConnected(ClientConnection con){
                 try {
                     if (connected.incrementAndGet() == 2) {
-                        server.sendToAllExceptTCP(con.getID(), msg);
+                        server.sendToAllOthersTCP(con.getID(), msg);
                     }
                 } catch (Exception e){
                     test.fail();
@@ -168,7 +168,7 @@ public class SendAllTest extends KryoNetTestCase {
 
 
     public void testSendAllExceptUDP() throws TimeoutException {
-        Client<ServerConnection> client2 = Client.createKryoClient();
+        Client client2 = new Client();
 
         reg(server.getKryo(), client.getKryo(), StringMessage.class);
         reg(client2.getKryo(), StringMessage.class);
@@ -183,7 +183,7 @@ public class SendAllTest extends KryoNetTestCase {
             public void onConnected(ClientConnection con){
                 try {
                     if (connected.incrementAndGet() == 2) {
-                        server.sendToAllExceptUDP(con.getID(), msg);
+                        server.sendToAllOthersUDP(con.getID(), msg);
                     }
                 } catch (Exception e){
                     test.fail();

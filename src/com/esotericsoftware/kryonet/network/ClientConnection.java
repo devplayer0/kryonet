@@ -1,10 +1,12 @@
-package com.esotericsoftware.kryonet;
+package com.esotericsoftware.kryonet.network;
 
+import com.esotericsoftware.kryonet.network.messages.MessageToClient;
+import com.esotericsoftware.kryonet.network.messages.QueryToClient;
 import com.esotericsoftware.kryonet.util.SameThreadListener;
-import com.esotericsoftware.kryonet.messages.MessageToClient;
-import com.esotericsoftware.kryonet.messages.QueryToClient;
 import com.esotericsoftware.minlog.Log;
 
+import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 
@@ -28,18 +30,20 @@ public class ClientConnection extends Connection<MessageToClient> {
 
 
 
+
     /**Send a query message to this connection and block until a reply is received.
+     * If no reply is received within the timeout window, Optional.empty() is returned.
      *
      * @return The reply sent by this connection*/
-    public <Q> Q sendAndWait(QueryToClient<Q> query) {
+    public <Q> Optional<Q> sendAndWait(QueryToClient<Q> query, Duration timeout) {
         final SameThreadListener<Q> callback = new SameThreadListener<>();
         sendAsync(query, callback);
 
         try {
-            return callback.waitForResult();
+            return Optional.of(callback.waitForResult(timeout));
         } catch (TimeoutException e) {
             queries.remove(query);
-            throw new RuntimeException("Query was not replied to in time.");
+            return Optional.empty();
         }
     }
 

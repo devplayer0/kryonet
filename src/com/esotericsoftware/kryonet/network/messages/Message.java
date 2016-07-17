@@ -1,4 +1,4 @@
-package com.esotericsoftware.kryonet.messages;
+package com.esotericsoftware.kryonet.network.messages;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 

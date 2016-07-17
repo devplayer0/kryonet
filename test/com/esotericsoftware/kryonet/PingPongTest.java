@@ -21,7 +21,11 @@ package com.esotericsoftware.kryonet;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
-import com.esotericsoftware.kryonet.messages.BidirectionalMessage;
+import com.esotericsoftware.kryonet.network.impl.Client;
+import com.esotericsoftware.kryonet.network.impl.Server;
+import com.esotericsoftware.kryonet.network.messages.BidirectionalMessage;
+import com.esotericsoftware.kryonet.network.ClientConnection;
+import com.esotericsoftware.kryonet.network.ServerConnection;
 import com.esotericsoftware.kryonet.v2.KryoNetTestCase;
 
 import java.io.IOException;
@@ -70,11 +74,12 @@ public class PingPongTest extends KryoNetTestCase {
 
 		// ----
 
-		final Client client = Client.createKryoClient(16384, 8192);
+
+		final Client client = new Client(16384, 8192);
 		register(client.getKryo());
 		startEndPoint(client);
-		client.addListener(new ConnectionAdapter() {
-			public void received (Connection connection, Object object) {
+		client.addListener(new ConnectionAdapter<ServerConnection>() {
+			public void received (ServerConnection connection, Object object) {
 				if (object instanceof Data) {
 					Data data = (Data)object;
 					if (data.isTCP) {

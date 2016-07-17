@@ -1,7 +1,6 @@
 package com.esotericsoftware.kryonet.adapters;
 
-import com.esotericsoftware.kryonet.Connection;
-import com.esotericsoftware.kryonet.Listener;
+import com.esotericsoftware.kryonet.network.Connection;
 import com.esotericsoftware.minlog.Log;
 
 import java.util.LinkedList;

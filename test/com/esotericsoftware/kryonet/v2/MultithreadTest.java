@@ -1,8 +1,8 @@
 package com.esotericsoftware.kryonet.v2;
 
-import com.esotericsoftware.kryonet.ClientConnection;
-import com.esotericsoftware.kryonet.Listener;
-import com.esotericsoftware.kryonet.ServerConnection;
+import com.esotericsoftware.kryonet.network.ClientConnection;
+import com.esotericsoftware.kryonet.adapters.Listener;
+import com.esotericsoftware.kryonet.network.ServerConnection;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
 import com.esotericsoftware.kryonet.utils.DataMessage;
 import com.esotericsoftware.minlog.Log;
@@ -104,6 +104,6 @@ public class MultithreadTest extends KryoNetTestCase {
         assertEquals(sgot.intValue(), csent.intValue());
         assertEquals(ssent.intValue(), cgot.intValue());
         Log.info("Server sent " + ssent.get() + " Messages");
-        Log.info("Client sent " + csent.get() + " Messages");
+        Log.info("AbstractClient sent " + csent.get() + " Messages");
     }
 }

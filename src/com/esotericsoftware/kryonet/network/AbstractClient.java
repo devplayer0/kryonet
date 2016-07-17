@@ -17,16 +17,18 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryonet;
+package com.esotericsoftware.kryonet.network;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryonet.messages.FrameworkMessage;
-import com.esotericsoftware.kryonet.messages.FrameworkMessage.DiscoverHost;
-import com.esotericsoftware.kryonet.messages.FrameworkMessage.RegisterTCP;
-import com.esotericsoftware.kryonet.messages.FrameworkMessage.RegisterUDP;
-import com.esotericsoftware.kryonet.messages.MessageToServer;
-import com.esotericsoftware.kryonet.messages.QueryToClient;
-import com.esotericsoftware.kryonet.messages.QueryToServer;
+import com.esotericsoftware.kryonet.adapters.Listener;
+import com.esotericsoftware.kryonet.network.impl.Server;
+import com.esotericsoftware.kryonet.network.messages.FrameworkMessage;
+import com.esotericsoftware.kryonet.network.messages.FrameworkMessage.DiscoverHost;
+import com.esotericsoftware.kryonet.network.messages.FrameworkMessage.RegisterTCP;
+import com.esotericsoftware.kryonet.network.messages.FrameworkMessage.RegisterUDP;
+import com.esotericsoftware.kryonet.network.messages.MessageToServer;
+import com.esotericsoftware.kryonet.network.messages.QueryToClient;
+import com.esotericsoftware.kryonet.network.messages.QueryToServer;
 import com.esotericsoftware.kryonet.serializers.KryoSerialization;
 import com.esotericsoftware.kryonet.serializers.Serialization;
 import com.esotericsoftware.kryonet.util.KryoNetException;
@@ -44,7 +46,7 @@ import static com.esotericsoftware.minlog.Log.*;
 
 /** Represents a TCP and optionally a UDP connection to a {@link Server}.
  * @author Nathan Sweet <misc@n4te.com> */
-public class Client<T extends ServerConnection> extends EndPoint<MessageToServer, T> {
+public abstract class AbstractClient<T extends ServerConnection> extends EndPoint<MessageToServer, T> {
 	static {
 		try {
 			// Needed for NIO selectors on Android 2.2.
@@ -56,10 +58,7 @@ public class Client<T extends ServerConnection> extends EndPoint<MessageToServer
 	private final String TAG = getTag();
 
 	private final T connection;
-	private final Serialization serialization;
 	private volatile boolean tcpRegistered, udpRegistered;
-	private final Object tcpRegistrationLock = new Object();
-	private final Object udpRegistrationLock = new Object();
 	private volatile boolean shutdown;
 	private int connectTimeout;
 	private InetAddress connectHost;
@@ -67,11 +66,13 @@ public class Client<T extends ServerConnection> extends EndPoint<MessageToServer
 	private int connectUdpPort;
 	private boolean isClosed;
 	private ClientDiscoveryHandler discoveryHandler;
+	private final Object tcpRegistrationLock = new Object();
+	private final Object udpRegistrationLock = new Object();
 
 
-	/** Creates a Client with a write buffer size of 8192 and an object buffer size of 2048. */
-	public Client (T connection) {
-		this(connection, 8192, 2048);
+	/** Creates a AbstractClient with a write buffer size of 8192 and an object buffer size of 2048. */
+	protected AbstractClient(T connection) {
+		this(connection, DEFAULT_WRITE_BUFFER, DEFAULT_OBJ_BUFFER);
 	}
 
 	/** @param writeBufferSize One buffer of this size is allocated. Objects are serialized to the write buffer where the bytes are
@@ -88,15 +89,14 @@ public class Client<T extends ServerConnection> extends EndPoint<MessageToServer
 	 *           deserialized.
 	 *           <p>
 	 *           The object buffers should be sized at least as large as the largest object that will be sent or received. */
-	public Client (T connection, int writeBufferSize, int objectBufferSize) {
+	protected AbstractClient(T connection, int writeBufferSize, int objectBufferSize) {
 		this(connection, writeBufferSize, objectBufferSize, new KryoSerialization());
 	}
 
-	public Client (T connection, int writeBufferSize, int objectBufferSize, Serialization serialization) {
+	protected AbstractClient(T connection, int writeBufferSize, int objectBufferSize, Serialization serialization) {
+		super(serialization, writeBufferSize);
 		this.connection = connection;
 		connection.endPoint = this;
-
-		this.serialization = serialization;
 
 		this.discoveryHandler = ClientDiscoveryHandler.DEFAULT;
 
@@ -139,12 +139,9 @@ public class Client<T extends ServerConnection> extends EndPoint<MessageToServer
 		discoveryHandler = newDiscoveryHandler;
 	}
 
-	public Serialization getSerialization () {
-		return serialization;
-	}
 
 	public Kryo getKryo () {
-		return ((KryoSerialization)serialization).getKryo();
+		return ((KryoSerialization) serializer).getKryo();
 	}
 
 	/** Opens a TCP only client.
@@ -188,7 +185,7 @@ public class Client<T extends ServerConnection> extends EndPoint<MessageToServer
 		}
 		connection.id = -1;
 		try {
-			if (udpPort != -1) connection.udp = new UdpConnection(serialization, connection.tcp.readBuffer.capacity());
+			if (udpPort != -1) connection.udp = new UdpConnection(serializer, connection.tcp.readBuffer.capacity());
 
 			long endTime;
 			synchronized (updateLock) {
@@ -208,7 +205,7 @@ public class Client<T extends ServerConnection> extends EndPoint<MessageToServer
 				}
 				if (!tcpRegistered) {
 					throw new SocketTimeoutException("Connected, but timed out during TCP registration.\n"
-						+ "Note: Client#update must be called in a separate thread during connect.");
+						+ "Note: AbstractClient#update must be called in a separate thread during connect.");
 				}
 			}
 
@@ -291,7 +288,7 @@ public class Client<T extends ServerConnection> extends EndPoint<MessageToServer
 
 
 	private void handleTCP(Object msg, T fromConnection){
-		final List<Listener<? super T>> listeners = Client.this.listeners;
+		final List<Listener<? super T>> listeners = AbstractClient.this.listeners;
 
 		if(msg instanceof FrameworkMessage){
 			if(TRACE){
@@ -321,7 +318,7 @@ public class Client<T extends ServerConnection> extends EndPoint<MessageToServer
 
 
 	private void handleUDP(Object msg, T fromConnection){
-		final List<Listener<? super T>> listeners = Client.this.listeners;
+		final List<Listener<? super T>> listeners = AbstractClient.this.listeners;
 
 		if(msg instanceof FrameworkMessage){
 			if(TRACE){
@@ -462,7 +459,7 @@ public class Client<T extends ServerConnection> extends EndPoint<MessageToServer
 	}
 
 	public void run () {
-		if (TRACE) trace(TAG, "Client thread started.");
+		if (TRACE) trace(TAG, "AbstractClient thread started.");
 		shutdown = false;
 		while (!shutdown) {
 			try {
@@ -492,7 +489,7 @@ public class Client<T extends ServerConnection> extends EndPoint<MessageToServer
 				throw ex;
 			}
 		}
-		if (TRACE) trace(TAG, "Client thread stopped.");
+		if (TRACE) trace(TAG, "AbstractClient thread stopped.");
 	}
 
 	public void start () {
@@ -504,7 +501,7 @@ public class Client<T extends ServerConnection> extends EndPoint<MessageToServer
 			} catch (InterruptedException ignored) {
 			}
 		}
-		updateThread = new Thread(this, "Client");
+		updateThread = new Thread(this, "AbstractClient");
 		updateThread.setDaemon(true);
 		updateThread.start();
 	}
@@ -512,7 +509,7 @@ public class Client<T extends ServerConnection> extends EndPoint<MessageToServer
 	public void stop () {
 		if (shutdown) return;
 		close();
-		if (TRACE) trace(TAG, "Client thread stopping.");
+		if (TRACE) trace(TAG, "AbstractClient thread stopping.");
 		shutdown = true;
 		selector.wakeup();
 	}
@@ -544,7 +541,7 @@ public class Client<T extends ServerConnection> extends EndPoint<MessageToServer
 
 	private void broadcast (int udpPort, DatagramSocket socket) throws IOException {
 		ByteBuffer dataBuffer = ByteBuffer.allocate(64);
-		serialization.write(dataBuffer, new DiscoverHost());
+		serializer.write(dataBuffer, new DiscoverHost());
 		dataBuffer.flip();
 		byte[] data = new byte[dataBuffer.limit()];
 		dataBuffer.get(data);
@@ -652,6 +649,7 @@ public class Client<T extends ServerConnection> extends EndPoint<MessageToServer
 		}
 	}
 
+
 	public int sendTCP(MessageToServer msg) {
 		return connection.sendTCP(msg);
 	}
@@ -660,30 +658,7 @@ public class Client<T extends ServerConnection> extends EndPoint<MessageToServer
 		return connection.sendUDP(msg);
 	}
 
-
-	// Factory methods
-	public static Client<ServerConnection> createKryoClient() {
-		return new Client<>(createDefaultConnection());
-	}
-
-	public static Client<ServerConnection> createKryoClient(int writeBufferSize, int objectBufferSize) {
-		return new Client<>(createDefaultConnection(), writeBufferSize, objectBufferSize);
-	}
-
-	public static Client<ServerConnection> createClient(int writeBufferSize, int objectBufferSize, Serialization format) {
-		return new Client<>(createDefaultConnection(), writeBufferSize, objectBufferSize, format);
-	}
-
-
-	public static ServerConnection createDefaultConnection(){
-		ServerConnection con = new ServerConnection();
-		con.setName("Server");
-		return  con;
-	}
-
-
-
-	public String getTag(){
+	protected String getTag(){
 		return "KryoClient";
 	}
 }

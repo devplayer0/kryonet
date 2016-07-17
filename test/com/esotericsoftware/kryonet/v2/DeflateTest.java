@@ -23,12 +23,12 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.serializers.CollectionSerializer;
 import com.esotericsoftware.kryo.serializers.DeflateSerializer;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
-import com.esotericsoftware.kryonet.Client;
-import com.esotericsoftware.kryonet.ClientConnection;
-import com.esotericsoftware.kryonet.Server;
-import com.esotericsoftware.kryonet.ServerConnection;
+import com.esotericsoftware.kryonet.network.ClientConnection;
+import com.esotericsoftware.kryonet.network.ServerConnection;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
-import com.esotericsoftware.kryonet.messages.BidirectionalMessage;
+import com.esotericsoftware.kryonet.network.impl.Client;
+import com.esotericsoftware.kryonet.network.impl.Server;
+import com.esotericsoftware.kryonet.network.messages.BidirectionalMessage;
 import com.esotericsoftware.kryonet.utils.ObjectMessage;
 import com.esotericsoftware.minlog.Log;
 
@@ -63,13 +63,13 @@ public class DeflateTest extends KryoNetTestCase {
 		// ----
 
 
-		final Client<ServerConnection> client = Client.createKryoClient();
+		final Client client = new Client();
 		register(client.getKryo());
 		startEndPoint(client);
 		client.addListener(new ConnectionAdapter<ServerConnection>() {
 
 			public void received (ServerConnection connection, Object object) {
-				Log.info("Client received " + object);
+				Log.info("AbstractClient received " + object);
 				if (object instanceof SomeData) {
 					SomeData data = (SomeData)object;
 					System.out.println(data.stuff[3]);
