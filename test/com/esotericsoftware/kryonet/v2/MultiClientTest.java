@@ -1,11 +1,10 @@
 package com.esotericsoftware.kryonet.v2;
 
-import com.esotericsoftware.kryonet.Client;
-import com.esotericsoftware.kryonet.ClientConnection;
-import com.esotericsoftware.kryonet.ServerConnection;
+import com.esotericsoftware.kryonet.network.ClientConnection;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
 import com.esotericsoftware.kryonet.adapters.RegisteredClientListener;
 import com.esotericsoftware.kryonet.adapters.RegisteredServerListener;
+import com.esotericsoftware.kryonet.network.impl.Client;
 import com.esotericsoftware.kryonet.utils.StringMessage;
 
 import java.util.Arrays;
@@ -37,7 +36,7 @@ public class MultiClientTest extends KryoNetTestCase {
         server.addListener(serverSide);
         client.addListener(clientSide1);
 
-        Client<ServerConnection> client2 = Client.createKryoClient();
+        Client client2 = new Client();
         client2.addListener(clientSide2);
 
         super.reg(server.getKryo(), StringMessage.class);

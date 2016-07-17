@@ -133,7 +133,7 @@ public class ChatClient {
 		JList nameList;
 
 		public ChatFrame (String host) {
-			super("Chat Client");
+			super("Chat AbstractClient");
 			setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 			setSize(640, 200);
 			setLocationRelativeTo(null);

@@ -20,8 +20,12 @@
 package com.esotericsoftware.kryonet.v2;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryonet.*;
+import com.esotericsoftware.kryonet.network.AbstractClient;
+import com.esotericsoftware.kryonet.network.ClientConnection;
+import com.esotericsoftware.kryonet.network.EndPoint;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+import com.esotericsoftware.kryonet.network.impl.Client;
+import com.esotericsoftware.kryonet.network.impl.Server;
 import com.esotericsoftware.minlog.Log;
 import com.esotericsoftware.minlog.Log.Logger;
 import junit.framework.TestCase;
@@ -51,7 +55,7 @@ abstract public class KryoNetTestCase extends TestCase {
 
 	protected Server server = new Server(Short.MAX_VALUE,Short.MAX_VALUE);
 
-	protected Client<ServerConnection> client = Client.createKryoClient(Short.MAX_VALUE, Short.MAX_VALUE);
+	protected Client client = new Client(Short.MAX_VALUE, Short.MAX_VALUE);
 
 	protected ClientConnection clientRef;
 
@@ -175,8 +179,8 @@ abstract public class KryoNetTestCase extends TestCase {
 	}
 
 
-	public void start(Client... clients){
-		for(Client client : clients) {
+	public void start(AbstractClient... clients){
+		for(AbstractClient client : clients) {
 			startEndPoint(client);
 			try {
 				client.connect(1000, host, tcpPort, udpPort);
@@ -188,7 +192,7 @@ abstract public class KryoNetTestCase extends TestCase {
 	}
 
 
-	public void start(Server server, Client... clients) {
+	public void start(Server server, AbstractClient... clients) {
 		startEndPoint(server);
 		try {
 			server.bind(tcpPort, udpPort);

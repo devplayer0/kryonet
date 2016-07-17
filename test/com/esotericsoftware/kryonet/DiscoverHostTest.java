@@ -22,6 +22,12 @@ package com.esotericsoftware.kryonet;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+import com.esotericsoftware.kryonet.network.ClientDiscoveryHandler;
+import com.esotericsoftware.kryonet.network.ServerDiscoveryHandler;
+import com.esotericsoftware.kryonet.network.impl.Client;
+import com.esotericsoftware.kryonet.network.impl.Server;
+import com.esotericsoftware.kryonet.network.ClientConnection;
+import com.esotericsoftware.kryonet.network.Connection;
 import com.esotericsoftware.kryonet.serializers.Serialization;
 import com.esotericsoftware.kryonet.v2.KryoNetTestCase;
 
@@ -37,7 +43,7 @@ import static com.esotericsoftware.minlog.Log.info;
 public class DiscoverHostTest extends KryoNetTestCase {
 
 	public void testBroadcast () throws IOException {
-		// This server exists solely to reply to Client#discoverHost.
+		// This server exists solely to reply to AbstractClient#discoverHost.
 		// It wouldn't be needed if the real server was using UDP.
 		final Server broadcastServer = new Server();
 		startEndPoint(broadcastServer);
@@ -56,7 +62,7 @@ public class DiscoverHostTest extends KryoNetTestCase {
 
 		// ----
 
-		Client client = Client.createKryoClient();
+		Client client = new Client();
 		InetAddress host = client.discoverHost(udpPort, 2000);
 		if (host == null) {
 			stopEndPoints();
@@ -128,7 +134,7 @@ public class DiscoverHostTest extends KryoNetTestCase {
 			}
 		};
 
-		// This server exists solely to reply to Client#discoverHost.
+		// This server exists solely to reply to AbstractClient#discoverHost.
 		// It wouldn't be needed if the real server was using UDP.
 		final Server broadcastServer = new Server();
 
@@ -150,7 +156,7 @@ public class DiscoverHostTest extends KryoNetTestCase {
 
 		// ----
 
-		Client client = Client.createKryoClient();
+		Client client = new Client();
 
 		client.getKryo().register(DiscoveryResponsePacket.class);
 		client.setDiscoveryHandler(clientDiscoveryHandler);

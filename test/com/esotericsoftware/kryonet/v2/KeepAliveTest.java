@@ -1,8 +1,8 @@
 package com.esotericsoftware.kryonet.v2;
 
-import com.esotericsoftware.kryonet.Client;
-import com.esotericsoftware.kryonet.Server;
-import com.esotericsoftware.kryonet.messages.FrameworkMessage;
+import com.esotericsoftware.kryonet.network.impl.Client;
+import com.esotericsoftware.kryonet.network.impl.Server;
+import com.esotericsoftware.kryonet.network.messages.FrameworkMessage;
 import com.esotericsoftware.minlog.Log;
 
 import java.io.IOException;
@@ -28,7 +28,7 @@ public class KeepAliveTest extends KryoNetTestCase {
 
     public void testKeepAliveJackson() throws InterruptedException, IOException {
         Server server = new Server();
-        Client client = Client.createKryoClient();
+        Client client = new Client();
         server.start();
         client.start();
 

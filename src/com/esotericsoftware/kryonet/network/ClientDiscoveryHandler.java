@@ -17,7 +17,7 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryonet;
+package com.esotericsoftware.kryonet.network;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
@@ -28,7 +28,7 @@ public interface ClientDiscoveryHandler {
 
 	/**
 	 * This implementation of the {@link ClientDiscoveryHandler} is responsible
-	 * for providing the {@link Client} with it's default behavior.
+	 * for providing the {@link AbstractClient} with it's default behavior.
 	 */
 
 	ClientDiscoveryHandler DEFAULT = new ClientDiscoveryHandler() {
@@ -52,7 +52,7 @@ public interface ClientDiscoveryHandler {
 
 	/**
 	 * Implementations of this method should return a new {@link DatagramPacket}
-	 * that the {@link Client} will use to fill with the incoming packet data
+	 * that the {@link AbstractClient} will use to fill with the incoming packet data
 	 * sent by the {@link ServerDiscoveryHandler}.
 	 * 
 	 * @return a new {@link DatagramPacket}
@@ -60,7 +60,7 @@ public interface ClientDiscoveryHandler {
 	public DatagramPacket onRequestNewDatagramPacket();
 
 	/**
-	 * Called when the {@link Client} discovers a host.
+	 * Called when the {@link AbstractClient} discovers a host.
 	 * 
 	 * @param datagramPacket
 	 *            the same {@link DatagramPacket} from
@@ -72,8 +72,8 @@ public interface ClientDiscoveryHandler {
 	public void onDiscoveredHost(DatagramPacket datagramPacket, Kryo kryo);
 
 	/**
-	 * Called right before the {@link Client#discoverHost(int, int)} or
-	 * {@link Client#discoverHosts(int, int)} method exits. This allows the
+	 * Called right before the {@link AbstractClient#discoverHost(int, int)} or
+	 * {@link AbstractClient#discoverHosts(int, int)} method exits. This allows the
 	 * implementation to clean up any resources used, i.e. an {@link Input}.
 	 */
 	public void onFinally();

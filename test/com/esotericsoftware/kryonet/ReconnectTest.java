@@ -20,6 +20,9 @@
 package com.esotericsoftware.kryonet;
 
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+import com.esotericsoftware.kryonet.network.impl.Client;
+import com.esotericsoftware.kryonet.network.impl.Server;
+import com.esotericsoftware.kryonet.network.Connection;
 import com.esotericsoftware.kryonet.v2.KryoNetTestCase;
 
 import java.io.IOException;
@@ -48,7 +51,7 @@ public class ReconnectTest extends KryoNetTestCase {
 		// ----
 
 		final AtomicInteger reconnetCount = new AtomicInteger();
-		final Client client = Client.createKryoClient();
+		Client client = new Client();
 		startEndPoint(client);
 		client.addListener(new ConnectionAdapter<Connection>() {
 			public void onDisconnected(Connection connection) {

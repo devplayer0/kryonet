@@ -20,6 +20,11 @@
 package com.esotericsoftware.kryonet;
 
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+import com.esotericsoftware.kryonet.network.impl.Client;
+import com.esotericsoftware.kryonet.network.impl.Server;
+import com.esotericsoftware.kryonet.network.ClientConnection;
+import com.esotericsoftware.kryonet.network.Connection;
+import com.esotericsoftware.kryonet.network.ServerConnection;
 import com.esotericsoftware.kryonet.utils.StringMessage;
 import com.esotericsoftware.kryonet.v2.KryoNetTestCase;
 
@@ -51,7 +56,7 @@ public class MultipleThreadTest extends KryoNetTestCase {
 		// ----
 
 		for (int i = 0; i < clients; i++) {
-			Client<ServerConnection> client = Client.createKryoClient(16384, 8192);
+			Client client = new Client(16384, 8192);
 			client.getKryo().register(String[].class);
 			startEndPoint(client);
 			client.addListener(new ConnectionAdapter<ServerConnection>() {

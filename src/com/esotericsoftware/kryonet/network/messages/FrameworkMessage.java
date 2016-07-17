@@ -17,7 +17,7 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryonet.messages;
+package com.esotericsoftware.kryonet.network.messages;
 
 import com.esotericsoftware.minlog.Log;
 
@@ -52,8 +52,6 @@ public interface FrameworkMessage extends BidirectionalMessage {
 	final class Ping implements FrameworkMessage {
 		public int id;
 		public boolean isReply;
-
-
 	}
 
 

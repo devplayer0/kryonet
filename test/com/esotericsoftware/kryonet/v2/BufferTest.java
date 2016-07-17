@@ -20,12 +20,12 @@
 package com.esotericsoftware.kryonet.v2;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryonet.Client;
-import com.esotericsoftware.kryonet.ClientConnection;
-import com.esotericsoftware.kryonet.Server;
-import com.esotericsoftware.kryonet.ServerConnection;
+import com.esotericsoftware.kryonet.network.ClientConnection;
+import com.esotericsoftware.kryonet.network.ServerConnection;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
-import com.esotericsoftware.kryonet.messages.BidirectionalMessage;
+import com.esotericsoftware.kryonet.network.impl.Client;
+import com.esotericsoftware.kryonet.network.impl.Server;
+import com.esotericsoftware.kryonet.network.messages.BidirectionalMessage;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -74,7 +74,7 @@ public class BufferTest extends KryoNetTestCase {
 			}
 		});
 
-		final Client<ServerConnection> client = Client.createKryoClient(writeBufferSize, objectBufferSize);
+		Client client2 = new Client(writeBufferSize, objectBufferSize);
 		startEndPoint(client);
 		register(client.getKryo());
 		client.connect(2000, host, tcpPort);

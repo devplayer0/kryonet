@@ -17,10 +17,13 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryonet;
+package com.esotericsoftware.kryonet.network;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryonet.messages.Message;
+import com.esotericsoftware.kryonet.adapters.Listener;
+import com.esotericsoftware.kryonet.network.cache.CachedMessageFactory;
+import com.esotericsoftware.kryonet.network.impl.Server;
+import com.esotericsoftware.kryonet.network.messages.Message;
 import com.esotericsoftware.kryonet.serializers.KryoSerialization;
 import com.esotericsoftware.kryonet.serializers.Serialization;
 
@@ -37,17 +40,33 @@ import static com.esotericsoftware.minlog.Log.trace;
 /** Represents the local end point of a connection.
  * @author Nathan Sweet <misc@n4te.com> */
 public abstract class EndPoint<FM extends Message, C extends Connection<FM>> implements Runnable, Closeable {
+	public static final int DEFAULT_WRITE_BUFFER = 16384, DEFAULT_OBJ_BUFFER = 2048;
 
 	protected Thread updateThread;
 	protected int emptySelects;
 	protected final Object updateLock = new Object();
 	protected Selector selector;
+	protected CachedMessageFactory cachedMessageFactory;
 
 	protected final List<Listener<? super C>> listeners = new CopyOnWriteArrayList<>();
 
 
 	protected final String TAG = getTag();
 
+	protected final Serialization serializer;
+
+	protected final int writeBufferSize;
+
+
+
+	protected EndPoint(Serialization serializer, int writeBufferSize){
+		this.serializer = serializer;
+		this.writeBufferSize = writeBufferSize;
+	}
+
+
+
+	/**This is the tag messages from this class are logged with.*/
 	protected abstract String getTag();
 
 
@@ -90,6 +109,8 @@ public abstract class EndPoint<FM extends Message, C extends Connection<FM>> imp
 
 
 
+
+
 	public void addListener (Listener<? super C> listener) {
 		if (listener == null) throw new IllegalArgumentException("listener cannot be null.");
 		listeners.add(listener);
@@ -104,7 +125,9 @@ public abstract class EndPoint<FM extends Message, C extends Connection<FM>> imp
 
 
 	/** Gets the serialization instance that will be used to serialize and deserialize objects. */
-	public abstract Serialization getSerialization();
+	public Serialization getSerialization() {
+		return serializer;
+	}
 
 	/** Continually updates this end point until {@link #stop()} is called. */
 	public abstract void run();
@@ -115,11 +138,11 @@ public abstract class EndPoint<FM extends Message, C extends Connection<FM>> imp
 	/** Closes this end point and causes {@link #run()} to return. */
 	public abstract void stop();
 
-	/** @see Client
+	/** @see AbstractClient
 	 * @see Server */
 	public abstract void close();
 
-	/** @see Client#update(int)
+	/** @see AbstractClient#update(int)
 	 * @see Server#update(int) */
 	public abstract void update(int timeout) throws IOException;
 
@@ -134,5 +157,11 @@ public abstract class EndPoint<FM extends Message, C extends Connection<FM>> imp
 	public abstract Kryo getKryo();
 
 
+	/** Creates a new Factory capable of creating CachedMessages.
+	 * Since the factory uses a significant amount of memory, this method should be called once
+	 * and the result re-used.*/
+	public CachedMessageFactory getCachedMessageFactory(){
+		return new CachedMessageFactory(getSerialization(), writeBufferSize);
+	}
 
 }

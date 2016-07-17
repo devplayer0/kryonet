@@ -20,6 +20,9 @@
 package com.esotericsoftware.kryonet;
 
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+import com.esotericsoftware.kryonet.network.impl.Client;
+import com.esotericsoftware.kryonet.network.impl.Server;
+import com.esotericsoftware.kryonet.network.ServerConnection;
 import com.esotericsoftware.kryonet.utils.StringMessage;
 
 import java.io.IOException;
@@ -41,7 +44,7 @@ public class KryoNetBufferUnderflowTest {
 
 
 		// Creating client
-		final Client<ServerConnection> client = Client.createKryoClient(writeBufferSize, objectBufferSize);
+		Client client = new Client(writeBufferSize, objectBufferSize);
 		client.start();
 		client.addListener(new ConnectionAdapter<ServerConnection>() {
 			@Override
@@ -54,7 +57,7 @@ public class KryoNetBufferUnderflowTest {
 			}
 		});
 		client.connect(5000, "localhost", port);
-		System.out.println("Client onConnected");
+		System.out.println("AbstractClient onConnected");
 
 		// Catching exception
 		Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {

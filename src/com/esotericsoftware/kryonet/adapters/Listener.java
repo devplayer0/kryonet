@@ -17,12 +17,16 @@
  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
-package com.esotericsoftware.kryonet;
+package com.esotericsoftware.kryonet.adapters;
+
+import com.esotericsoftware.kryonet.network.impl.Server;
+import com.esotericsoftware.kryonet.network.AbstractClient;
+import com.esotericsoftware.kryonet.network.Connection;
 
 /** Used to be notified about connection events. */
 public interface Listener<T extends Connection> {
 	/** Called when the remote end has been onConnected. This will be invoked before any objects are received.
-	 * This will be invoked on the same thread as {@link Client#update(int)} and
+	 * This will be invoked on the same thread as {@link AbstractClient#update(int)} and
 	 * {@link Server#update(int)}. This method should not block for long periods as other network activity will not be processed
 	 * until it returns. */
 	void onConnected(T connection) ;

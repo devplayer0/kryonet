@@ -19,12 +19,12 @@
 
 package com.esotericsoftware.kryonet.v2;
 
-import com.esotericsoftware.kryonet.Client;
-import com.esotericsoftware.kryonet.ClientConnection;
-import com.esotericsoftware.kryonet.Server;
-import com.esotericsoftware.kryonet.ServerConnection;
+import com.esotericsoftware.kryonet.network.ClientConnection;
+import com.esotericsoftware.kryonet.network.ServerConnection;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
-import com.esotericsoftware.kryonet.messages.BidirectionalMessage;
+import com.esotericsoftware.kryonet.network.impl.Client;
+import com.esotericsoftware.kryonet.network.impl.Server;
+import com.esotericsoftware.kryonet.network.messages.BidirectionalMessage;
 import com.esotericsoftware.kryonet.utils.StringMessage;
 import com.esotericsoftware.minlog.Log;
 
@@ -80,7 +80,7 @@ public class PingTest extends KryoNetTestCase {
 
 		// ----
 
-		final Client<ServerConnection> client = Client.createKryoClient();
+		Client client = new Client();
 		reg(server.getKryo(), client.getKryo(), Ping2.class);
 
 		client.addListener(new ConnectionAdapter<ServerConnection>() {

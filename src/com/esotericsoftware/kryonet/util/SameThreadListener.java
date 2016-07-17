@@ -26,11 +26,11 @@ public class SameThreadListener<T> implements Consumer<T> {
     }
 
     /**Calls wait() until a (Non-null) result is received. */
-    public T waitForResult() throws TimeoutException {
+    public T waitForResult(Duration timeout) throws TimeoutException {
         try {
             synchronized (lock) {
                 if(result == null)
-                    lock.wait(Duration.ofMinutes(20).toMillis());
+                    lock.wait(timeout.toMillis());
             }
         } catch (InterruptedException e) {
             Log.error("Thread interrupted while waiting for response", e);

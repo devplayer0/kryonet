@@ -19,8 +19,8 @@
 
 package com.esotericsoftware.kryonet.v2;
 
-import com.esotericsoftware.kryonet.ClientConnection;
-import com.esotericsoftware.kryonet.ServerConnection;
+import com.esotericsoftware.kryonet.network.ClientConnection;
+import com.esotericsoftware.kryonet.network.ServerConnection;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
 import com.esotericsoftware.kryonet.utils.StringMessage;
 

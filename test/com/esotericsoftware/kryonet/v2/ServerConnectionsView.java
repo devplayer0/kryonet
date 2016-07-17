@@ -1,9 +1,8 @@
 package com.esotericsoftware.kryonet.v2;
 
-import com.esotericsoftware.kryonet.Client;
-import com.esotericsoftware.kryonet.ClientConnection;
-import com.esotericsoftware.kryonet.Server;
-import com.esotericsoftware.kryonet.ServerConnection;
+import com.esotericsoftware.kryonet.network.ClientConnection;
+import com.esotericsoftware.kryonet.network.impl.Client;
+import com.esotericsoftware.kryonet.network.impl.Server;
 import com.esotericsoftware.minlog.Log;
 
 import java.util.List;
@@ -17,7 +16,7 @@ public class ServerConnectionsView extends KryoNetTestCase {
         List<ClientConnection> list = server.getConnections();
         assertEquals(list.size(), 0);
 
-        Client<ServerConnection> secondClient = Client.createKryoClient();
+        Client secondClient = new Client();
         start(server, client, secondClient);
         sleep(200);
         assertEquals(list.size(), 2);
@@ -38,9 +37,9 @@ public class ServerConnectionsView extends KryoNetTestCase {
 
     public void testServerConnectionsDisconnect(){
         Server s = new Server();
-        Client one = Client.createKryoClient();
-        Client two = Client.createKryoClient();
-        Client three = Client.createKryoClient();
+        Client one = new Client();
+        Client two = new Client();
+        Client three = new Client();
 
         List<ClientConnection> list = s.getConnections();
 
@@ -64,9 +63,9 @@ public class ServerConnectionsView extends KryoNetTestCase {
 
     public void testServerConnectionsClose(){
         Server s = new Server();
-        Client one = Client.createKryoClient();
-        Client two = Client.createKryoClient();
-        Client three = Client.createKryoClient();
+        Client one = new Client();
+        Client two = new Client();
+        Client three = new Client();
 
         List<ClientConnection> list = s.getConnections();
 

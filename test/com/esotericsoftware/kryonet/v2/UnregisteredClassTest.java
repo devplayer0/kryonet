@@ -19,11 +19,11 @@
 
 package com.esotericsoftware.kryonet.v2;
 
-import com.esotericsoftware.kryonet.Client;
-import com.esotericsoftware.kryonet.ClientConnection;
-import com.esotericsoftware.kryonet.Server;
-import com.esotericsoftware.kryonet.ServerConnection;
+import com.esotericsoftware.kryonet.network.ClientConnection;
+import com.esotericsoftware.kryonet.network.ServerConnection;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
+import com.esotericsoftware.kryonet.network.impl.Client;
+import com.esotericsoftware.kryonet.network.impl.Server;
 import com.esotericsoftware.kryonet.utils.DataMessage;
 
 import java.io.IOException;
@@ -75,8 +75,7 @@ public class UnregisteredClassTest extends KryoNetTestCase {
 		});
 
 		// ----
-
-		final Client<ServerConnection> client = Client.createKryoClient(1024 * 32, 1024 * 16);
+		Client client = new Client(1024 * 32, 1024 * 16);
 		client.getKryo().setRegistrationRequired(false);
 		startEndPoint(client);
 		client.addListener(new ConnectionAdapter<ServerConnection>() {

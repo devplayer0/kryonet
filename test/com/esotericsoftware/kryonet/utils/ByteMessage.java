@@ -1,6 +1,6 @@
 package com.esotericsoftware.kryonet.utils;
 
-import com.esotericsoftware.kryonet.messages.BidirectionalMessage;
+import com.esotericsoftware.kryonet.network.messages.BidirectionalMessage;
 
 /**
  * Created by Evan on 6/18/16.

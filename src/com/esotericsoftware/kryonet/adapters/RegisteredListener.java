@@ -1,8 +1,7 @@
 package com.esotericsoftware.kryonet.adapters;
 
-import com.esotericsoftware.kryonet.Connection;
-import com.esotericsoftware.kryonet.Listener;
-import com.esotericsoftware.kryonet.messages.Message;
+import com.esotericsoftware.kryonet.network.Connection;
+import com.esotericsoftware.kryonet.network.messages.Message;
 import com.esotericsoftware.minlog.Log;
 
 import java.util.HashMap;
@@ -25,6 +24,8 @@ public class RegisteredListener<C extends Connection> implements Listener<C> {
 
     protected BiConsumer<? super Message, ? super C> defaultCallback = DEFAULT_HANDLE;
 
+    protected ErrorHandler errorHandler = new DefaultErrorHandler();
+
     public RegisteredListener(){
 
     }
@@ -33,16 +34,30 @@ public class RegisteredListener<C extends Connection> implements Listener<C> {
 
     /**This call back is invoked when no other callback has been registered for a class.
      * This will apply to both Messages and Queries. */
-    public void setDefaultHanler(BiConsumer<? super Message, ? super C> defaultHandler){
+    public void setDefaultHandler(BiConsumer<? super Message, ? super C> defaultHandler){
         defaultCallback = defaultHandler;
+    }
+
+    /**This is called whenever there is an uncaught exception that arises from any callback.*/
+    public void setErrorHandler(ErrorHandler handler){
+        errorHandler = handler;
     }
 
 
     @SuppressWarnings("unchecked")
     protected void invoke(Object msg, C connection){
-        map.getOrDefault(msg.getClass(), DEFAULT_HANDLE).accept(msg, connection);
+        try {
+            map.getOrDefault(msg.getClass(), DEFAULT_HANDLE).accept(msg, connection);
+        } catch (Exception e){
+            errorHandler.onError((Message)msg, e);
+        }
     }
 
+
+
+    protected void onError(Exception e){
+        Log.error("KryoNet", "An error occurred in RegisteredListener.", e);
+    }
 
 
     @Override
@@ -66,4 +81,11 @@ public class RegisteredListener<C extends Connection> implements Listener<C> {
         invoke(msg, connection);
     }
 
+
+    private static class DefaultErrorHandler implements ErrorHandler {
+        @Override
+        public void onError(Message message, Exception e) {
+            Log.error("KryoNet", "An error occurred when handling message " + message, e);
+        }
+    }
 }

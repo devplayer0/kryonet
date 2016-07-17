@@ -19,9 +19,9 @@
 
 package com.esotericsoftware.kryonet.util;
 
-import com.esotericsoftware.kryonet.Connection;
-import com.esotericsoftware.kryonet.EndPoint;
-import com.esotericsoftware.kryonet.messages.Message;
+import com.esotericsoftware.kryonet.network.Connection;
+import com.esotericsoftware.kryonet.network.EndPoint;
+import com.esotericsoftware.kryonet.network.messages.Message;
 
 import java.io.IOException;
 import java.io.InputStream;
