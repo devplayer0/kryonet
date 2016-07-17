@@ -32,24 +32,22 @@ Examples:
 
 
 ## Creating a Server and Client
-Getting started is very similar to KryoNet, except the client has a type parameter and is usually created with
-a static factory method.
+Getting started is identical to kryonet if you intend to use the default server/client
 ```java
-	Server server = new Server(); // Just like kryonet
+	Server server = new Server();
 	server.start();
 	server.bind(tcpPort, udpPort);
 	
-	Client<ServerConnection> client = Client.createKryoClient();
+	Client client = new Client();
 	client.start();
 	client.connect(timeOut, "localhost", tcpPort, udpPort);
 ```
 
 
 
-
 ## Defining a message type;
 - Messages should implement either MessageToServer, MessageToClient, or both.
-- All messages have an isReliable method that indicates whether they should be sent over TCP or UDP by default. The intent is that you first design your game using TCP for everything, and then optimize later by selecting messages types that can be send over UDP by just overriding this method.
+- All messages inherit an isReliable method that indicates whether they should be sent over TCP or UDP by default. The intent is that you first design your game using TCP for everything, and then optimize later by selecting messages types that can be send over UDP by just overriding this method.
 
 ```java
 	/** This message indicates that the client has requested their player to move once in a particular direction.
@@ -68,7 +66,6 @@ a static factory method.
     	}
     }
 ```
-
 
 To define a message type that defaults to UDP:
 
@@ -99,18 +96,20 @@ To define a message type that defaults to UDP:
 
 
 ##Registering Callbacks
+RegisteredListeners support mapping Message types to callbacks that can be invoked in constant time. 
+Here's an example that demonstrates adding callbacks for messages and queries.
 ```java
 	RegisteredServerListener listener = new RegisteredServerListener();
 	
-	/*Delegate to appropriate handler*/
+	// Delegate to appropriate handler
 	listener.addHandler(MovementMessage.class, (msg, sender) -> movementHandler.handle(msg, sender)); 
 
-	listener.addQueryHandle(LoginQuery.class, (query, con) -> {
+	listener.addQueryHandle(LoginQuery.class, (query, connection) -> {
 		//Reply should be called once on each query to send back a result
         if(query.username.equals("John Smith") && query.password.equals("1234")) {
         	query.reply(LoginStatus.SUCCESS);
         } else {
-			query.reply(LoginStatus.FAILURE);            
+		query.reply(LoginStatus.FAILURE);            
         }
     });
     
@@ -152,8 +151,7 @@ Queries can also be handled asynchronously with callbacks. Let's say our player 
 
 Queries are defined very much like normal messages. For example, we can define RequestSelection very simply as
 ```java
-	public class RequestSelection extends QueryToClient<Selection> { 
-	}
+	public class RequestSelection extends QueryToClient<Selection> { }
 ```
 
 
