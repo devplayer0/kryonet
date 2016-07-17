@@ -1,12 +1,13 @@
 This project is based on Nathan Sweet's [KryoNet](https://github.com/EsotericSoftware/kryonet)  
 
-This project is not backwards-compatible with kryonet, but the following guide expects you to be familiar with it. 
+This project is not backwards-compatible with KryoNet, but the following guide expects you to be familiar with it. This project aims to provides higher abstraction over KryoNet with stronger type safety and potentially better performance by reducing redundant serialization of messages.
 
 
-In comparison to KryoNet, this project:  
-- Adds support for 'queries' -- Messages that expect a reply that will be handled sychnrounously or asynchronously
-- Supports registering callbacks for message types. O(1) dispatch without instanceof chains.
+Key changes from KryoNet
 - connection.sendToAll(msg) serializes msg exactly once, rather than once per connection
+- Support for caching pre-serialized forms of commonly used messages (see CachedMessage<T>)
+- Adds support for 'queries' -- Messages that expect a reply.
+- Supports registering callbacks for message types. O(1) dispatch without use of instanceof
 - Uses Jackson for json serialization rather than jsonbeans.
 - Requires all message types to implement MessageToServer or MessageToClient
 - Uses ConcurrentUnit for unit tests which catch many failures that are ignored in KryoNet
@@ -25,7 +26,7 @@ Examples:
 - [Defining a message Type](#defining-a-message-type)
 - [Registering Callbacks](#registering-callbacks)
 - [Using Queries](#queries)
-
+- [Pre-serialized Messages](#pre-serialized-messages)
 
 
 
@@ -153,4 +154,14 @@ Queries are defined very much like normal messages. For example, we can define R
 ```java
 	public class RequestSelection extends QueryToClient<Selection> { 
 	}
+```
+
+
+##Pre-serialized Messages
+Identical messages that are sent frequently can be serialized once ahead-of-time and sent more efficiently later. A quick benchmark suggests that pre-serialized messages can be sent 10x faster for simple objects. The CachedMessage object creates a ByteBuffer of minimal size to hold the serialized form (With kryo serialization this is a very small memory cost, but could be significant with json or other formats). Creation of CachedMessages is relatively expensive and should be done before the server starts. For messages with dynamic content that can't be cached at start-up, use the variants of server.sendToAll(MessageToClient, Iterable<ClientConnection>), which will only perform serialization once for a batch send. 
+
+```java
+	CachedMessageFactory msgFactory = server.getCachedMessageFactory(); 
+	MyMessage msg = new MyMessage(); 	// Message that will be cached.
+	CachedMessage<MyMessage> cached = msgFactory.create(msg);
 ```
