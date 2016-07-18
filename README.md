@@ -162,4 +162,5 @@ Identical messages that are sent frequently can be serialized once ahead-of-time
 	CachedMessageFactory msgFactory = server.getCachedMessageFactory(); 
 	MyMessage msg = new MyMessage(); 	// Message that will be cached.
 	CachedMessage<MyMessage> cached = msgFactory.create(msg);
+	server.send(cached);
 ```
