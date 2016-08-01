@@ -3,7 +3,6 @@ package com.esotericsoftware.kryonet.util;
 import com.esotericsoftware.kryonet.util.Consumer;
 import com.esotericsoftware.minlog.Log;
 
-import java.time.Duration;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -26,11 +25,11 @@ public class SameThreadListener<T> implements Consumer<T> {
     }
 
     /**Calls wait() until a (Non-null) result is received. */
-    public T waitForResult(Duration timeout) throws TimeoutException {
+    public T waitForResult(long timeout) throws TimeoutException {
         try {
             synchronized (lock) {
                 if(result == null)
-                    lock.wait(timeout.toMillis());
+                    lock.wait(timeout);
             }
         } catch (InterruptedException e) {
             Log.error("Thread interrupted while waiting for response", e);

@@ -53,7 +53,11 @@ public class RegisteredListener<C extends Connection> implements Listener<C> {
     @SuppressWarnings("unchecked")
     protected void invoke(Object msg, C connection){
         try {
-            map.getOrDefault(msg.getClass(), DEFAULT_HANDLE).accept(msg, connection);
+            BiConsumer c = map.get(msg.getClass());
+            if (c == null) {
+              c = DEFAULT_HANDLE;
+            }
+            c.accept(msg, connection);
         } catch (Exception e){
             errorHandler.onError((Message)msg, e);
         }

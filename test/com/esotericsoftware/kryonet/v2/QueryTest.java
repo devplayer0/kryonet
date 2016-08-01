@@ -12,8 +12,6 @@ import com.esotericsoftware.minlog.Log;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.time.Duration;
-import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -81,10 +79,10 @@ public class QueryTest extends KryoNetTestCase {
     public void testQueryToClient(){
         assertNotNull(clientRef);
 
-        Optional<Boolean> result = clientRef.sendAndWait(new YesNoQuery(), Duration.ofMinutes(1));
+        Boolean result = clientRef.sendAndWait(new YesNoQuery(), 60 * 1000);
         assertNotNull(result);
-        assertTrue(result.isPresent());
-        assertTrue(result.get());
+        assertTrue(result != null);
+        assertTrue(result);
     }
 
 
@@ -92,9 +90,9 @@ public class QueryTest extends KryoNetTestCase {
 
     @Test
     public void testQueryToServer(){
-        Optional<Boolean> result = client.getConnection().sendAndWait(new YesNoServerQuery(), Duration.ofMinutes(1));
+        Boolean result = client.getConnection().sendAndWait(new YesNoServerQuery(), 60 * 1000);
         assertNotNull(result);
-        assertTrue(result.isPresent());
-        assertFalse(result.get());
+        assertTrue(result != null);
+        assertFalse(result);
     }
 }

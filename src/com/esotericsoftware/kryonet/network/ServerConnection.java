@@ -6,8 +6,6 @@ import com.esotericsoftware.kryonet.util.SameThreadListener;
 import com.esotericsoftware.kryonet.util.Consumer;
 import com.esotericsoftware.minlog.Log;
 
-import java.time.Duration;
-import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -32,15 +30,15 @@ public class ServerConnection extends Connection<MessageToServer> {
     /**Send a query message to this connection and block until a reply is received.
      *
      * @return The reply sent by this connection*/
-    public <Q> Optional<Q> sendAndWait(QueryToServer<Q> query, Duration timeout) {
+    public <Q> Q sendAndWait(QueryToServer<Q> query, long timeout) {
         final SameThreadListener<Q> callback = new SameThreadListener<>();
         sendAsync(query, callback);
 
         try {
-            return Optional.of(callback.waitForResult(timeout));
+            return callback.waitForResult(timeout);
         } catch (TimeoutException e) {
             queries.remove(query);
-            return Optional.empty();
+            return null;
         }
     }
 

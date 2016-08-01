@@ -14,7 +14,6 @@ import java.util.Objects;
  *
  * @since 1.8
  */
-@FunctionalInterface
 public interface Consumer<T> {
     /**
      * Performs this operation on the given argument.

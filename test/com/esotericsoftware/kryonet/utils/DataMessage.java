@@ -53,7 +53,10 @@ public class DataMessage implements BidirectionalMessage {
         msg.bytes = new byte[ThreadLocalRandom.current().nextInt(0, 8)];
         ThreadLocalRandom.current().nextBytes(msg.bytes);
 
-        msg.ints = ThreadLocalRandom.current().ints().limit(ThreadLocalRandom.current().nextInt(0, 4)).toArray();
+        msg.ints = new int[ThreadLocalRandom.current().nextInt(0, 4)];
+        for (int i = 0; i < msg.ints.length; i++) {
+          msg.ints[i] = ThreadLocalRandom.current().nextInt(Integer.MIN_VALUE);
+        }
 
         msg.string = randString(12);
         msg.strings = new String[]{randString(0), randString(1), randString(8)};
@@ -64,11 +67,17 @@ public class DataMessage implements BidirectionalMessage {
         msg.shorts = new short[] { (short) ThreadLocalRandom.current().nextInt(), (short) ThreadLocalRandom.current().nextInt()};
         msg.Shorts = new Short[] { (short) ThreadLocalRandom.current().nextInt(), (short) ThreadLocalRandom.current().nextInt()};
 
-        msg.doubles = ThreadLocalRandom.current().doubles().limit(ThreadLocalRandom.current().nextInt(1,10)).toArray();
+        msg.doubles = new double[ThreadLocalRandom.current().nextInt(1, 10)];
+        for (int i = 0; i < msg.doubles.length; i++) {
+          msg.doubles[i] = ThreadLocalRandom.current().nextDouble();
+        }
         //msg.Doubles = ThreadLocalRandom.current().doubles().limit(ThreadLocalRandom.current().nextInt(1,10)).boxed().toArray(Double[]::new);
         msg.chars = "Hello Word, Random String".toCharArray();
 
-        msg.longs = ThreadLocalRandom.current().longs().limit(ThreadLocalRandom.current().nextInt(1, 10)).toArray();
+        msg.ints = new int[ThreadLocalRandom.current().nextInt(1, 10)];
+        for (int i = 0; i < msg.longs.length; i++) {
+          msg.longs[i] = ThreadLocalRandom.current().nextLong(Long.MIN_VALUE);
+        }
         //msg.Longs = ThreadLocalRandom.current().longs().limit(ThreadLocalRandom.current().nextInt(1, 10)).boxed().toArray(Long[]::new);
 
         msg.floats = new float[] { (float) ThreadLocalRandom.current().nextDouble(), (float) ThreadLocalRandom.current().nextDouble()};

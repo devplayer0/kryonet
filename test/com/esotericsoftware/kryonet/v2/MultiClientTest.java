@@ -93,8 +93,14 @@ public class MultiClientTest extends KryoNetTestCase {
             client2.send(new StringMessage(toClient1.get(i)));
         }
 
-        String client1Ref = String.join("", toClient1);
-        String client2Ref = String.join("", toClient2);
+        String client1Ref = "";
+        for (String s : toClient1) {
+          client1Ref += s;
+        }
+        String client2Ref = "";
+        for (String s : toClient2) {
+          client2Ref += s;
+        }
 
         // Wait for all messages to be received
         count.await(5, TimeUnit.SECONDS);

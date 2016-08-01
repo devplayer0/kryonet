@@ -13,7 +13,6 @@ import com.esotericsoftware.minlog.Log;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.LongAdder;
 
 /**
  * Created by Evan on 6/29/16.
@@ -62,12 +61,12 @@ public class PingQueryTest extends KryoNetTestCase {
         sleep(1000);
         test.await(3000);
 
-        Log.error(String.format("Average latency was: %,d", + sum.longValue() / (NUM_MSG - 100)));
+        Log.error(String.format("Average latency was: %,d", + sum / (NUM_MSG - 100)));
     }
 
     AtomicInteger count = new AtomicInteger(0);
 
-    LongAdder sum = new LongAdder();
+    long sum = 0;
     AtomicInteger n = new AtomicInteger(0);
     public void logPing(Long end, long start){
         final long delta = end - start;
@@ -76,7 +75,7 @@ public class PingQueryTest extends KryoNetTestCase {
         if(count.incrementAndGet() == NUM_MSG)
             test.resume();
         else if (count.get() >= 100){
-            sum.add(delta);
+            sum += delta;
             n.incrementAndGet();
         }
     }
