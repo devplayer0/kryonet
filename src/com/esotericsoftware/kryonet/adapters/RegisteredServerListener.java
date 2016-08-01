@@ -3,9 +3,8 @@ package com.esotericsoftware.kryonet.adapters;
 import com.esotericsoftware.kryonet.network.ClientConnection;
 import com.esotericsoftware.kryonet.network.messages.MessageToServer;
 import com.esotericsoftware.kryonet.network.messages.QueryToServer;
+import com.esotericsoftware.kryonet.util.BiConsumer;
 import org.eclipse.jdt.annotation.Nullable;
-
-import java.util.function.BiConsumer;
 
 /**
  * This class provides a default server configuration for RegisteredListener.

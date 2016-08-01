@@ -1,15 +1,15 @@
 /* Copyright (c) 2008, Nathan Sweet
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
  * conditions are met:
- * 
+ *
  * - Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
  * - Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following
  * disclaimer in the documentation and/or other materials provided with the distribution.
  * - Neither the name of Esoteric Software nor the names of its contributors may be used to endorse or promote products derived
  * from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
  * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
  * SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
@@ -28,6 +28,7 @@ import com.esotericsoftware.kryonet.network.messages.FrameworkMessage.Ping;
 import com.esotericsoftware.kryonet.network.messages.Message;
 import com.esotericsoftware.kryonet.serializers.Serialization;
 import com.esotericsoftware.kryonet.util.KryoNetException;
+import com.esotericsoftware.kryonet.util.Consumer;
 import com.esotericsoftware.minlog.Log;
 
 import java.io.IOException;
@@ -38,7 +39,6 @@ import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 
 import static com.esotericsoftware.minlog.Log.*;
 
@@ -87,10 +87,10 @@ public class Connection<MSG extends Message> {
 	public boolean isConnected () {
 		return isConnected;
 	}
-	
+
    /**
     * Returns the last protocol error that occured on the connection.
-    * 
+    *
     * @return The last protocol error or null if none error occured.
     */
    public KryoNetException getLastProtocolError() {

@@ -3,9 +3,8 @@ package com.esotericsoftware.kryonet.adapters;
 import com.esotericsoftware.kryonet.network.ServerConnection;
 import com.esotericsoftware.kryonet.network.messages.MessageToClient;
 import com.esotericsoftware.kryonet.network.messages.QueryToClient;
+import com.esotericsoftware.kryonet.util.BiConsumer;
 import org.eclipse.jdt.annotation.Nullable;
-
-import java.util.function.BiConsumer;
 
 /**
  * Created by Evan on 6/30/16.

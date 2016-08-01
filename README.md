@@ -1,4 +1,5 @@
-This project is based on Nathan Sweet's [KryoNet](https://github.com/EsotericSoftware/kryonet)  
+This project is based on Nathan Sweet's [KryoNet](https://github.com/EsotericSoftware/kryonet)
+This specific fork is compatible with Java 7.
 
 This project is not backwards-compatible with KryoNet, but the following guide expects you to be familiar with it. This project aims to provides higher abstraction over KryoNet with stronger type safety and potentially better performance by reducing redundant serialization of messages.
 
@@ -37,7 +38,7 @@ Getting started is identical to kryonet if you intend to use the default server/
 	Server server = new Server();
 	server.start();
 	server.bind(tcpPort, udpPort);
-	
+
 	Client client = new Client();
 	client.start();
 	client.connect(timeOut, "localhost", tcpPort, udpPort);
@@ -54,13 +55,13 @@ Getting started is identical to kryonet if you intend to use the default server/
 	* This message is send over TCP by default when using server.send(MessageToSever).
 	* If UDP is desired in specific instances, you can still use sever.sendUDP(MessageToServer)*/
     public class MovementMessage implements MessageToSever {
-    	
+
     	public Direction dir;
-    	
+
     	MovementMessage() {
     		// Used by Kryo deserializer
     	}
-    	
+
     	public MovementMessage(Direction d){
     		dir = d;
     	}
@@ -75,18 +76,18 @@ To define a message type that defaults to UDP:
 	* the method player.getConnection().sendTCP(MessageToClient) will override this behavior though.
 	*/
     public class PositionUpdateMessage implements MessageToClient {
-    	
+
     	public int x, y;
-    	
+
     	PositionUpdateMessage() {
     		// Used by Kryo deserializer
     	}
-    	
+
     	public PositionUpdateMessage(int xx , int yy){
     		x = xx;
     		y = yy;
     	}
-    	
+
     	@Override
     	public boolean isReliable(){
     		return false; // False indicates that messages of this type should be sent over UDP
@@ -96,13 +97,13 @@ To define a message type that defaults to UDP:
 
 
 ##Registering Callbacks
-RegisteredListeners support mapping Message types to callbacks that can be invoked in constant time. 
+RegisteredListeners support mapping Message types to callbacks that can be invoked in constant time.
 Here's an example that demonstrates adding callbacks for messages and queries.
 ```java
 	RegisteredServerListener listener = new RegisteredServerListener();
-	
+
 	// Delegate to appropriate handler
-	listener.addHandler(MovementMessage.class, (msg, sender) -> movementHandler.handle(msg, sender)); 
+	listener.addHandler(MovementMessage.class, (msg, sender) -> movementHandler.handle(msg, sender));
 
 	listener.addQueryHandle(LoginQuery.class, (query, connection) -> {
 		//Reply should be called once on each query to send back a result
@@ -112,7 +113,7 @@ Here's an example that demonstrates adding callbacks for messages and queries.
 		query.reply(LoginStatus.FAILURE);            
         }
     });
-    
+
     server.addListener(listener);
 ```
 
@@ -138,15 +139,15 @@ Doing so produces code that is really easy to reason about. Additionally, there 
 ```
 
 
-Queries can also be handled asynchronously with callbacks. Let's say our player is in the middle of a battle and the server needs to indicate to the client that it's time to select an option. 
+Queries can also be handled asynchronously with callbacks. Let's say our player is in the middle of a battle and the server needs to indicate to the client that it's time to select an option.
 ```java
     player.sendAsync(new RequestSelection(), new Consumer<Selection>(){
     	@Override
     	public void accept(Selection reply){
-    	   // Handle selection. This code will run in another thread. 
+    	   // Handle selection. This code will run in another thread.
     	}
-    }); 
-    
+    });
+
 ```
 
 Queries are defined very much like normal messages. For example, we can define RequestSelection very simply as
@@ -156,10 +157,10 @@ Queries are defined very much like normal messages. For example, we can define R
 
 
 ##Pre-serialized Messages
-Identical messages that are sent frequently can be serialized once ahead-of-time and sent more efficiently later. A quick benchmark suggests that pre-serialized messages can be sent 10x faster for simple objects. The CachedMessage object creates a ByteBuffer of minimal size to hold the serialized form (With kryo serialization this is a very small memory cost, but could be significant with json or other formats). Creation of CachedMessages is relatively expensive and should be done before the server starts. For messages with dynamic content that can't be cached at start-up, use the variants of server.sendToAll(MessageToClient, Iterable<ClientConnection>), which will only perform serialization once for a batch send. 
+Identical messages that are sent frequently can be serialized once ahead-of-time and sent more efficiently later. A quick benchmark suggests that pre-serialized messages can be sent 10x faster for simple objects. The CachedMessage object creates a ByteBuffer of minimal size to hold the serialized form (With kryo serialization this is a very small memory cost, but could be significant with json or other formats). Creation of CachedMessages is relatively expensive and should be done before the server starts. For messages with dynamic content that can't be cached at start-up, use the variants of server.sendToAll(MessageToClient, Iterable<ClientConnection>), which will only perform serialization once for a batch send.
 
 ```java
-	CachedMessageFactory msgFactory = server.getCachedMessageFactory(); 
+	CachedMessageFactory msgFactory = server.getCachedMessageFactory();
 	MyMessage msg = new MyMessage(); 	// Message that will be cached.
 	CachedMessage<MyMessage> cached = msgFactory.create(msg);
 	connection.send(cached);  	// Equivalent of connection.send(msg), but faster.

@@ -2,11 +2,11 @@ package com.esotericsoftware.kryonet.adapters;
 
 import com.esotericsoftware.kryonet.network.Connection;
 import com.esotericsoftware.kryonet.network.messages.Message;
+import com.esotericsoftware.kryonet.util.BiConsumer;
 import com.esotericsoftware.minlog.Log;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.BiConsumer;
 
 /**
  * Created by Evan on 6/25/16.

@@ -1,10 +1,10 @@
 package com.esotericsoftware.kryonet.util;
 
+import com.esotericsoftware.kryonet.util.Consumer;
 import com.esotericsoftware.minlog.Log;
 
 import java.time.Duration;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Consumer;
 
 /**
  * Created by Evan on 6/16/16.

@@ -3,12 +3,12 @@ package com.esotericsoftware.kryonet.network;
 import com.esotericsoftware.kryonet.network.messages.MessageToClient;
 import com.esotericsoftware.kryonet.network.messages.QueryToClient;
 import com.esotericsoftware.kryonet.util.SameThreadListener;
+import com.esotericsoftware.kryonet.util.Consumer;
 import com.esotericsoftware.minlog.Log;
 
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Consumer;
 
 /**
  * Created by Evan on 6/17/16.

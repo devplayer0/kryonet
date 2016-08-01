@@ -14,7 +14,7 @@
 
     <name>kryonet</name>
     <description>TCP and UDP client/server library for Java</description>
-    <url>https://github.com/EsotericSoftware/kryonet</url>
+    <url>https://github.com/jackos2500/kryonet</url>
 
     <licenses>
         <license>
@@ -46,12 +46,12 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.5</version>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>1.7</source>
+                    <target>1.7</target>
                 </configuration>
             </plugin>
         </plugins>
-    
+
         <!-- Set nonstandard source and test source dirs -->
         <sourceDirectory>src</sourceDirectory>
         <testSourceDirectory>test</testSourceDirectory>
