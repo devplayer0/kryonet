@@ -7,4 +7,8 @@ import com.esotericsoftware.kryonet.network.messages.BidirectionalMessage;
  */
 public enum EnumMessage implements BidirectionalMessage {
     INSTANCE;
+    @Override
+    public boolean isReliable() {
+      return true;
+    }
 }

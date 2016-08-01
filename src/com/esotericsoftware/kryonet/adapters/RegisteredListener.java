@@ -14,10 +14,16 @@ import java.util.Map;
 public class RegisteredListener<C extends Connection> implements Listener<C> {
 
     /**This is the default handler for received messages. It logs the name of the class received */
-    public static final BiConsumer<Message, Connection> DEFAULT_HANDLE = (m, b) -> Log.warn("Kryonet", "No handler for " + m.getClass() + " has been registered");
+    public static final BiConsumer<Message, Connection> DEFAULT_HANDLE = new BiConsumer<Message, Connection>() {
+      public void accept(Message m, Connection c) {
+        Log.warn("Kryonet", "No handler for " + m.getClass() + " has been registered");
+      }
+    };
 
     /**This is a nop handler that does nothing when a message is received. No message is logged.*/
-    public static final BiConsumer<Message, Connection> NO_OP = (m, b) -> {};
+    public static final BiConsumer<Message, Connection> NO_OP = new BiConsumer<Message, Connection>() {
+      public void accept(Message m, Connection c) {}
+    };
 
 
     protected final Map<Class<?>, BiConsumer> map = new HashMap<>();

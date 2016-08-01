@@ -24,7 +24,7 @@ public class SendAllTest extends KryoNetTestCase {
 
         final StringMessage msg = new StringMessage("Hello, World!");
 
-        AtomicInteger connected = new AtomicInteger(0);
+        final AtomicInteger connected = new AtomicInteger(0);
         server.addListener(new ConnectionAdapter<ClientConnection>(){
             @Override
             public void onConnected(ClientConnection con){
@@ -38,7 +38,7 @@ public class SendAllTest extends KryoNetTestCase {
             }
         });
 
-        AtomicInteger received = new AtomicInteger(0);
+        final AtomicInteger received = new AtomicInteger(0);
         ConnectionAdapter<ServerConnection> listener = new ConnectionAdapter<ServerConnection>(){
             @Override
             public void received(ServerConnection serve, Object object){
@@ -69,7 +69,7 @@ public class SendAllTest extends KryoNetTestCase {
 
         final StringMessage msg = new StringMessage("Hello, World!");
 
-        AtomicInteger connected = new AtomicInteger(0);
+        final AtomicInteger connected = new AtomicInteger(0);
         server.addListener(new ConnectionAdapter<ClientConnection>(){
             @Override
             public void onConnected(ClientConnection con){
@@ -83,7 +83,7 @@ public class SendAllTest extends KryoNetTestCase {
             }
         });
 
-        AtomicInteger received = new AtomicInteger(0);
+        final AtomicInteger received = new AtomicInteger(0);
         ConnectionAdapter<ServerConnection> listener = new ConnectionAdapter<ServerConnection>(){
             @Override
             public void received(ServerConnection serve, Object object){
@@ -119,7 +119,7 @@ public class SendAllTest extends KryoNetTestCase {
 
         final StringMessage msg = new StringMessage("Hello, World!");
 
-        AtomicInteger connected = new AtomicInteger(0);
+        final AtomicInteger connected = new AtomicInteger(0);
         server.addListener(new ConnectionAdapter<ClientConnection>(){
             @Override
             public void onConnected(ClientConnection con){
@@ -133,7 +133,7 @@ public class SendAllTest extends KryoNetTestCase {
             }
         });
 
-        AtomicInteger received = new AtomicInteger(0);
+        final AtomicInteger received = new AtomicInteger(0);
 
         client2.addListener(new ConnectionAdapter<ServerConnection>(){
             @Override
@@ -177,7 +177,7 @@ public class SendAllTest extends KryoNetTestCase {
 
         final StringMessage msg = new StringMessage("Hello, World!");
 
-        AtomicInteger connected = new AtomicInteger(0);
+        final AtomicInteger connected = new AtomicInteger(0);
         server.addListener(new ConnectionAdapter<ClientConnection>(){
             @Override
             public void onConnected(ClientConnection con){
@@ -191,7 +191,7 @@ public class SendAllTest extends KryoNetTestCase {
             }
         });
 
-        AtomicInteger received = new AtomicInteger(0);
+        final AtomicInteger received = new AtomicInteger(0);
 
         client2.addListener(new ConnectionAdapter<ServerConnection>(){
             @Override

@@ -16,8 +16,5 @@ public interface Message {
      * Usually, this would be overriden to return a true or false constant
      * to indicate whether messages of this type should be sent over tpc.
      */
-    default boolean isReliable(){
-        return true;
-    }
-
+    boolean isReliable();
 }

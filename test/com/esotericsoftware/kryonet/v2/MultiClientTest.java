@@ -1,11 +1,13 @@
 package com.esotericsoftware.kryonet.v2;
 
+import com.esotericsoftware.kryonet.network.ServerConnection;
 import com.esotericsoftware.kryonet.network.ClientConnection;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
 import com.esotericsoftware.kryonet.adapters.RegisteredClientListener;
 import com.esotericsoftware.kryonet.adapters.RegisteredServerListener;
 import com.esotericsoftware.kryonet.network.impl.Client;
 import com.esotericsoftware.kryonet.utils.StringMessage;
+import com.esotericsoftware.kryonet.util.BiConsumer;
 
 import java.util.Arrays;
 import java.util.List;
@@ -53,19 +55,32 @@ public class MultiClientTest extends KryoNetTestCase {
         List<String> toClient2 = Arrays.asList("Hello, World!", "  ", "baz",  " kryo ", "");
         List<String> toClient1 = Arrays.asList("Foo", "bar",  "fubar",  "",  " net ");
 
-        CountDownLatch count = new CountDownLatch(toClient1.size() + toClient2.size());
+        final CountDownLatch count = new CountDownLatch(toClient1.size() + toClient2.size());
 
-        StringBuffer buffer1 = new StringBuffer();
-        StringBuffer buffer2 = new StringBuffer();
-        clientSide1.addHandler(StringMessage.class, (msg, server) -> append(buffer1, msg, count));
-        clientSide2.addHandler(StringMessage.class, (msg, server) -> append(buffer2, msg, count));
+        final StringBuffer buffer1 = new StringBuffer();
+        final StringBuffer buffer2 = new StringBuffer();
+        clientSide1.addHandler(StringMessage.class, new BiConsumer<StringMessage, ServerConnection>() {
+          @Override
+          public void accept(StringMessage msg, ServerConnection server) {
+            append(buffer1, msg, count);
+          }
+        });
+        clientSide2.addHandler(StringMessage.class, new BiConsumer<StringMessage, ServerConnection>() {
+          @Override
+          public void accept(StringMessage msg, ServerConnection server) {
+            append(buffer2, msg, count);
+          }
+        });
 
 
-        serverSide.addHandler(StringMessage.class, (msg, sender) -> {
+        serverSide.addHandler(StringMessage.class, new BiConsumer<StringMessage, ClientConnection>() {
+          @Override
+          public void accept(StringMessage msg, ClientConnection sender) {
             for(ClientConnection c : clients.keySet()){
                 if(c != sender)
                     c.send(msg);
             }
+          }
         });
 
         start(server, client, client2);

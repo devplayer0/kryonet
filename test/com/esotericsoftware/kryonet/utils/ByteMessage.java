@@ -15,4 +15,8 @@ public class ByteMessage implements BidirectionalMessage {
     public ByteMessage(byte[] bs) {
         bytes = bs;
     }
+    @Override
+    public boolean isReliable() {
+      return true;
+    }
 }

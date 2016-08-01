@@ -20,8 +20,8 @@ public class MultithreadTest extends KryoNetTestCase {
 
 
     public void testThreads() throws TimeoutException {
-        AtomicInteger csent = new AtomicInteger(0);
-        AtomicInteger cgot = new AtomicInteger(0);
+        final AtomicInteger csent = new AtomicInteger(0);
+        final AtomicInteger cgot = new AtomicInteger(0);
 
         Listener<ServerConnection> clientSide = new ConnectionAdapter.ThreadedListener<>(new ConnectionAdapter<ServerConnection>() {
             @Override
@@ -61,16 +61,21 @@ public class MultithreadTest extends KryoNetTestCase {
         }, Executors.newFixedThreadPool(100));
 
 
-        AtomicInteger ssent = new AtomicInteger(0);
-        AtomicInteger sgot = new AtomicInteger(0);
+        final AtomicInteger ssent = new AtomicInteger(0);
+        final AtomicInteger sgot = new AtomicInteger(0);
         Listener<ClientConnection> serverSide = new ConnectionAdapter.ThreadedListener<>(new ConnectionAdapter<ClientConnection>() {
             @Override
-            public void onConnected(ClientConnection con) {
+            public void onConnected(final ClientConnection con) {
                 try {
-                    IntStream.range(0, 250).mapToObj(i -> new Thread(()-> {
-                        con.send(new PingTest.Ping2());
-                        ssent.incrementAndGet();
-                    }, "Thread "+ i)).forEach(Thread::start);
+                    for (int i = 0; i < 250; i++) {
+                      new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                          con.send(new PingTest.Ping2());
+                          ssent.incrementAndGet();
+                        }
+                      }, "Thread"+ i).start();
+                    }
                 } catch (Exception e){
                     test.fail(e);
                 }

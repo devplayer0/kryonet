@@ -1,15 +1,15 @@
 /* Copyright (c) 2008, Nathan Sweet
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
  * conditions are met:
- * 
+ *
  * - Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
  * - Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following
  * disclaimer in the documentation and/or other materials provided with the distribution.
  * - Neither the name of Esoteric Software nor the names of its contributors may be used to endorse or promote products derived
  * from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
  * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
  * SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
@@ -27,6 +27,7 @@ import com.esotericsoftware.kryonet.network.impl.Server;
 import com.esotericsoftware.kryonet.serializers.Serialization;
 import com.esotericsoftware.kryonet.utils.DataMessage;
 import com.esotericsoftware.kryonet.utils.YesNoQuery;
+import com.esotericsoftware.kryonet.util.Consumer;
 import com.esotericsoftware.minlog.Log;
 
 import java.io.IOException;
@@ -88,7 +89,7 @@ public abstract class AbstractSerializerTest<T extends Serialization> extends Kr
 
         // ----
 
-        AtomicInteger count = new AtomicInteger(0);
+        final AtomicInteger count = new AtomicInteger(0);
         final Client client = new Client(16384, 8192, serializer);
         startEndPoint(client);
         client.addListener(new ConnectionAdapter<ServerConnection>() {
@@ -134,9 +135,12 @@ public abstract class AbstractSerializerTest<T extends Serialization> extends Kr
             @Override
             public void onConnected(ClientConnection connection) {
                 try {
-                    connection.sendAsync(new YesNoQuery(), result -> {
+                    connection.sendAsync(new YesNoQuery(), new Consumer<Boolean>() {
+                      @Override
+                      public void accept(Boolean result) {
                         if (result)
                             test.resume();
+                      }
                     });
                 } catch (Exception e) {
                     test.fail(e);

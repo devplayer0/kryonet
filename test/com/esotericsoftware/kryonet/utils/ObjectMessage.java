@@ -13,4 +13,8 @@ public class ObjectMessage implements BidirectionalMessage {
     public ObjectMessage(Object msg){
         data = msg;
     }
+    @Override
+    public boolean isReliable() {
+      return true;
+    }
 }

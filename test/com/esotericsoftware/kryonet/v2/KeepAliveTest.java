@@ -1,5 +1,6 @@
 package com.esotericsoftware.kryonet.v2;
 
+import com.esotericsoftware.kryonet.network.ClientConnection;
 import com.esotericsoftware.kryonet.network.impl.Client;
 import com.esotericsoftware.kryonet.network.impl.Server;
 import com.esotericsoftware.kryonet.network.messages.FrameworkMessage;
@@ -17,7 +18,9 @@ public class KeepAliveTest extends KryoNetTestCase {
         start(server, client);
 
         Log.TRACE();
-        server.getConnections().forEach(c -> c.send(FrameworkMessage.keepAlive));
+        for (ClientConnection c : server.getConnections()) {
+          c.send(FrameworkMessage.keepAlive);
+        }
         Thread.sleep(5000);
         client.sendTCP(FrameworkMessage.keepAlive);
         Thread.sleep(1000);
@@ -35,16 +38,30 @@ public class KeepAliveTest extends KryoNetTestCase {
         server.bind(tcpPort+1, udpPort+1);
         client.connect(2000, host, tcpPort+1, udpPort +1);
 
-        server.getUpdateThread().setUncaughtExceptionHandler((t, e) -> test.fail(e));
-        client.getUpdateThread().setUncaughtExceptionHandler((t, e) -> test.fail(e));
+        server.getUpdateThread().setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+          @Override
+          public void uncaughtException(Thread t, Throwable e) {
+      			test.fail(e);
+          }
+    		});
+        client.getUpdateThread().setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+          @Override
+          public void uncaughtException(Thread t, Throwable e) {
+      			test.fail(e);
+          }
+    		});
 
 
         Log.TRACE();
-        server.getConnections().forEach(c -> c.send(FrameworkMessage.keepAlive));
+        for (ClientConnection c : server.getConnections()) {
+          c.send(FrameworkMessage.keepAlive);
+        }
         sleep(1000);
         client.sendTCP(FrameworkMessage.keepAlive);
         sleep(1000);
-        server.getConnections().forEach(c -> c.send(FrameworkMessage.keepAlive));
+        for (ClientConnection c : server.getConnections()) {
+          c.send(FrameworkMessage.keepAlive);
+        }
         sleep(1000);
         client.updateReturnTripTime();
 

@@ -1,4 +1,5 @@
-This project is based on Nathan Sweet's [KryoNet](https://github.com/EsotericSoftware/kryonet)
+This project is based on Nathan Sweet's [KryoNet](https://github.com/EsotericSoftware/kryonet).
+
 This specific fork is compatible with Java 7.
 
 This project is not backwards-compatible with KryoNet, but the following guide expects you to be familiar with it. This project aims to provides higher abstraction over KryoNet with stronger type safety and potentially better performance by reducing redundant serialization of messages.

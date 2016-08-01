@@ -74,7 +74,7 @@ public class ConnectionAdapter<C extends Connection> implements Listener<C> {
         }
 
         @Override
-        public void received(T connection, Object msg){
+        public void received(final T connection, final Object msg){
             queue(new Runnable() {
                 public void run () {
                     listener.received(connection, msg);

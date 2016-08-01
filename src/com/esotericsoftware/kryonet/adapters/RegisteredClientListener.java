@@ -4,7 +4,6 @@ import com.esotericsoftware.kryonet.network.ServerConnection;
 import com.esotericsoftware.kryonet.network.messages.MessageToClient;
 import com.esotericsoftware.kryonet.network.messages.QueryToClient;
 import com.esotericsoftware.kryonet.util.BiConsumer;
-import org.eclipse.jdt.annotation.Nullable;
 
 /**
  * Created by Evan on 6/30/16.
@@ -30,14 +29,14 @@ public class RegisteredClientListener extends RegisteredListener<ServerConnectio
      * @return The previously registered callback for this message type, or null if none existed.
      */
     @SuppressWarnings("unchecked")
-    public <K extends MessageToClient> @Nullable BiConsumer<? super K, ? super ServerConnection>
+    public <K extends MessageToClient> BiConsumer<? super K, ? super ServerConnection>
         addHandler(Class<K> clazz, BiConsumer<? super K, ? super ServerConnection> callback){
         return map.put(clazz, callback);
     }
 
 
     @SuppressWarnings("unchecked")
-    public <Q extends QueryToClient<?>> @Nullable BiConsumer<? super Q, ? super ServerConnection>
+    public <Q extends QueryToClient<?>> BiConsumer<? super Q, ? super ServerConnection>
         addQueryHandle(Class<Q> clazz, BiConsumer<? super Q, ? super ServerConnection> callback){
         return map.put(clazz, callback);
     }

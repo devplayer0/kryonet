@@ -33,4 +33,8 @@ public class StringMessage implements BidirectionalMessage {
     public int hashCode() {
         return msg != null ? msg.hashCode() : 0;
     }
+    @Override
+    public boolean isReliable() {
+      return true;
+    }
 }

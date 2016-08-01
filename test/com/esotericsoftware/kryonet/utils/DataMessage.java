@@ -65,11 +65,11 @@ public class DataMessage implements BidirectionalMessage {
         msg.Shorts = new Short[] { (short) ThreadLocalRandom.current().nextInt(), (short) ThreadLocalRandom.current().nextInt()};
 
         msg.doubles = ThreadLocalRandom.current().doubles().limit(ThreadLocalRandom.current().nextInt(1,10)).toArray();
-        msg.Doubles = ThreadLocalRandom.current().doubles().limit(ThreadLocalRandom.current().nextInt(1,10)).boxed().toArray(Double[]::new);
+        //msg.Doubles = ThreadLocalRandom.current().doubles().limit(ThreadLocalRandom.current().nextInt(1,10)).boxed().toArray(Double[]::new);
         msg.chars = "Hello Word, Random String".toCharArray();
 
         msg.longs = ThreadLocalRandom.current().longs().limit(ThreadLocalRandom.current().nextInt(1, 10)).toArray();
-        msg.Longs = ThreadLocalRandom.current().longs().limit(ThreadLocalRandom.current().nextInt(1, 10)).boxed().toArray(Long[]::new);
+        //msg.Longs = ThreadLocalRandom.current().longs().limit(ThreadLocalRandom.current().nextInt(1, 10)).boxed().toArray(Long[]::new);
 
         msg.floats = new float[] { (float) ThreadLocalRandom.current().nextDouble(), (float) ThreadLocalRandom.current().nextDouble()};
         msg.Floats = new Float[] { (float) ThreadLocalRandom.current().nextDouble(), (float) ThreadLocalRandom.current().nextDouble()};
@@ -129,6 +129,10 @@ public class DataMessage implements BidirectionalMessage {
 
     public String toString() {
         return "Data";
+    }
+    @Override
+    public boolean isReliable() {
+      return true;
     }
 
 

@@ -1,10 +1,13 @@
 package com.esotericsoftware.kryonet.v2;
 
 import com.esotericsoftware.kryonet.network.ClientConnection;
+import com.esotericsoftware.kryonet.network.ServerConnection;
 import com.esotericsoftware.kryonet.adapters.ConnectionAdapter;
 import com.esotericsoftware.kryonet.adapters.RegisteredClientListener;
 import com.esotericsoftware.kryonet.adapters.RegisteredListener;
 import com.esotericsoftware.kryonet.network.messages.QueryToClient;
+import com.esotericsoftware.kryonet.util.Consumer;
+import com.esotericsoftware.kryonet.util.BiConsumer;
 import com.esotericsoftware.minlog.Log;
 
 import java.util.concurrent.Executors;
@@ -17,7 +20,12 @@ import java.util.concurrent.atomic.LongAdder;
  */
 public class PingQueryTest extends KryoNetTestCase {
 
-    public static class PingQuery extends QueryToClient<Long> {}
+    public static class PingQuery extends QueryToClient<Long> {
+      @Override
+      public boolean isReliable() {
+        return true;
+      }
+    }
 
     public static final int NUM_MSG = 5000;
 
@@ -27,15 +35,25 @@ public class PingQueryTest extends KryoNetTestCase {
             @Override
             public void onConnected(ClientConnection con){
                 for(int i = 0; i < NUM_MSG; ++i) {
-                    long start = System.nanoTime();
-                    con.sendAsync(new PingQuery(), time -> logPing(time, start));
+                    final long start = System.nanoTime();
+                    con.sendAsync(new PingQuery(), new Consumer<Long>() {
+                      @Override
+                      public void accept(Long time) {
+                        logPing(time, start);
+                      }
+                    });
                 }
             }
         };
         server.addListener(listener);
 
         RegisteredClientListener responder = new RegisteredClientListener();
-        responder.addQueryHandle(PingQuery.class, (ping, con) -> ping.reply(System.nanoTime()));
+        responder.addQueryHandle(PingQuery.class, new BiConsumer<PingQuery, ServerConnection>() {
+          @Override
+          public void accept(PingQuery ping, ServerConnection con) {
+            ping.reply(System.nanoTime());
+          }
+        });
         client.addListener(new ConnectionAdapter.ThreadedListener<>(responder, Executors.newFixedThreadPool(4)));
 
         reg(server.getKryo(), client.getKryo(), Long.class, PingQuery.class);

@@ -1,10 +1,13 @@
 package com.esotericsoftware.kryonet.v2;
 
 import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryonet.network.ClientConnection;
+import com.esotericsoftware.kryonet.network.ServerConnection;
 import com.esotericsoftware.kryonet.adapters.RegisteredClientListener;
 import com.esotericsoftware.kryonet.adapters.RegisteredServerListener;
 import com.esotericsoftware.kryonet.utils.YesNoQuery;
 import com.esotericsoftware.kryonet.utils.YesNoServerQuery;
+import com.esotericsoftware.kryonet.util.BiConsumer;
 import com.esotericsoftware.minlog.Log;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,18 +33,24 @@ public class QueryTest extends KryoNetTestCase {
 
 
         RegisteredServerListener serverListener = new RegisteredServerListener();
-        serverListener.addQueryHandle(YesNoServerQuery.class, (query, con) -> {
+        serverListener.addQueryHandle(YesNoServerQuery.class, new BiConsumer<YesNoServerQuery, ClientConnection>() {
+          @Override
+          public void accept(YesNoServerQuery query, ClientConnection con) {
             Log.info("Server Received " + query);
             query.reply(false);
+          }
         });
         server.addListener(serverListener);
 
 
 
         RegisteredClientListener listener = new RegisteredClientListener();
-        listener.addQueryHandle(YesNoQuery.class, (query, con) -> {
+        listener.addQueryHandle(YesNoQuery.class, new BiConsumer<YesNoQuery, ServerConnection>() {
+          @Override
+          public void accept(YesNoQuery query, ServerConnection con) {
             Log.info("AbstractClient Received " + query);
             query.reply(true);
+          }
         });
 
 
